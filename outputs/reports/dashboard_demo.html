@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPT CFS v2.0.3 - Financial Consolidation Solution Showcase Dashboard</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-body: #090d16;
+            --bg-card: rgba(18, 26, 43, 0.75);
+            --bg-card-hover: rgba(28, 39, 64, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(59, 130, 246, 0.3);
+            
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.4);
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.4);
+            --purple: #8b5cf6;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --cyan: #06b6d4;
+
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --card-radius: 16px;
+        }
+
+        [data-theme="light"] {
+            --bg-body: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(241, 245, 249, 0.95);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-glow: rgba(59, 130, 246, 0.2);
+            
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-dim: #94a3b8;
+
+            --glass-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Glass Panel Utility */
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            box-shadow: var(--glass-shadow);
+        }
+
+        .glass-panel:hover {
+            border-color: var(--border-glow);
+        }
+
+        /* Navigation Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 0;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(9, 13, 22, 0.8);
+        }
+
+        [data-theme="light"] header {
+            background: rgba(248, 250, 252, 0.85);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-badge {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 20px;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .logo-title h1 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f1f5f9 30%, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme="light"] .logo-title h1 {
+            background: linear-gradient(135deg, #0f172a 30%, #334155);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-title span {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: rgba(16, 185, 129, 0.12);
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-control {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-control:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        #hero {
+            padding: 60px 0 40px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #34d399, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            max-width: 650px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 25px -5px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* Hero Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color, var(--primary));
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color, var(--primary));
+            margin-bottom: 14px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            letter-spacing: -1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Section Header */
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-subtitle {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+        }
+
+        .section-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Process Workflow Pipeline */
+        #workflow {
+            padding: 60px 0;
+        }
+
+        .workflow-pipeline {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            position: relative;
+        }
+
+        .step-card {
+            padding: 24px 20px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .step-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 24px -6px rgba(59, 130, 246, 0.25);
+        }
+
+        .step-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-family: var(--font-mono);
+        }
+
+        .step-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .step-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            flex-grow: 1;
+            margin-bottom: 16px;
+        }
+
+        .step-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            align-self: flex-start;
+        }
+
+        /* Analytics Section */
+        #analytics {
+            padding: 60px 0;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .chart-card {
+            padding: 28px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        /* Capabilities & Modules Section */
+        #modules {
+            padding: 60px 0;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .module-card {
+            padding: 28px;
+        }
+
+        .module-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .module-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .module-list {
+            list-style: none;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .module-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .module-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Reporting Suite Matrix */
+        #reports {
+            padding: 60px 0;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 28px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .report-table th {
+            text-align: left;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .report-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .report-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Audit Checklist Table */
+        #audit {
+            padding: 60px 0;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .input-search {
+            flex-grow: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-search:focus {
+            border-color: var(--primary);
+        }
+
+        .status-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-pass {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal-card {
+            max-width: 650px;
+            width: 100%;
+            padding: 36px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1100px) {
+            .hero-grid { grid-template-columns: 1fr; }
+            .workflow-pipeline { grid-template-columns: repeat(2, 1fr); }
+            .modules-grid { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            .workflow-pipeline { grid-template-columns: 1fr; }
+            .modules-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .hero-title { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="container nav-content">
+            <div class="logo-group">
+                <div class="logo-badge">CFS</div>
+                <div class="logo-title">
+                    <h1 data-i18n="app_title">FPT CFS Dashboard</h1>
+                    <span>v2.0.3 • Manual v1.06</span>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <button class="btn-control" id="langToggle">
+                    <i data-lucide="languages"></i> <span id="langText">EN</span>
+                </button>
+                <button class="btn-control" id="themeToggle">
+                    <i data-lucide="sun" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Section 1: Hero Showcase -->
+        <section id="hero">
+            <div class="hero-grid">
+                <div>
+                    <div class="hero-pill">
+                        <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+                        <span data-i18n="hero_pill">Giải Pháp Hợp Nhất BCTC Đột Phá VAS 25 / IFRS 10</span>
+                    </div>
+                    <h1 class="hero-title" data-i18n="hero_title">
+                        Tự Động Hoá Hợp Nhất <br><span class="gradient-text">Báo Cáo Tài Chính Tập Đoàn</span>
+                    </h1>
+                    <p class="hero-desc" data-i18n="hero_desc">
+                        FPT CFS v2.0.3 cung cấp nền tảng chuẩn hóa quy trình 5 bước: Khai báo kỳ, Đồng bộ dữ liệu ERP, Khớp giao dịch nội bộ IC, Phân bổ Goodwill/NCI và Kiểm tra chéo 100% đẳng thức cân đối kế toán.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#workflow" class="btn-primary">
+                            <i data-lucide="play-circle"></i> <span data-i18n="btn_explore">Khám Phá Quy Trình 5 Bước</span>
+                        </a>
+                        <a href="#audit" class="btn-secondary">
+                            <i data-lucide="shield-check"></i> <span data-i18n="btn_audit">Xem Ma Trận Kiểm Tra Chéo</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- KPI Stats Grid -->
+                <div class="stats-grid">
+                    <div class="glass-panel stat-card" style="--accent-color: #3b82f6;">
+                        <div class="stat-icon"><i data-lucide="file-text"></i></div>
+                        <div class="stat-value" data-target="112">112</div>
+                        <div class="stat-label" data-i18n="stat_pages">Trang Hướng Dẫn Vận Hành</div>
+                    </div>
+
+                    <div class="glass-panel stat-card" style="--accent-color: #10b981;">
+                        <div class="stat-icon"><i data-lucide="zap"></i></div>
+                        <div class="stat-value"><span data-target="98">98</span>%</div>
+                        <div class="stat-label" data-i18n="stat_speed">Rút Ngắn Thời Gian Lập BCTC</div>
+                    </div>
+
+                    <div class="glass-panel stat-card" style="--accent-color: #8b5cf6;">
+                        <div class="stat-icon"><i data-lucide="check-circle-2"></i></div>
+                        <div class="stat-value"><span data-target="100">100</span>%</div>
+                        <div class="stat-label" data-i18n="stat_check">Kiểm Tra Đẳng Thức Tự Động</div>
+                    </div>
+
+                    <div class="glass-panel stat-card" style="--accent-color: #06b6d4;">
+                        <div class="stat-icon"><i data-lucide="layers"></i></div>
+                        <div class="stat-value" data-target="5">5</div>
+                        <div class="stat-label" data-i18n="stat_stages">Giai Đoạn Quy Trình Hợp Nhất</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: 5-Phase Workflow Pipeline -->
+        <section id="workflow">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="workflow_sub">Quy Trình Nghiệp Vụ Chỉnh Chu</span>
+                <h2 class="section-title" data-i18n="workflow_title">Luồng Vận Hành Hợp Nhất 5 Bước</h2>
+                <p class="section-desc" data-i18n="workflow_desc">Click vào từng bước để xem chi tiết các thủ tục, đầu vào và đầu ra hệ thống.</p>
+            </div>
+
+            <div class="workflow-pipeline">
+                <div class="glass-panel step-card" onclick="openStepModal(1)">
+                    <div class="step-num">01</div>
+                    <h3 class="step-title" data-i18n="step1_title">Bắt Đầu Kỳ Kế Toán</h3>
+                    <p class="step-desc" data-i18n="step1_desc">Mở kỳ kế toán mới, tự động mang sang số dư đầu kỳ BS, khai báo tỷ giá BS/PL và cập nhật phạm vi hợp nhất.</p>
+                    <span class="step-badge" data-i18n="step1_badge">Thiết lập chung</span>
+                </div>
+
+                <div class="glass-panel step-card" onclick="openStepModal(2)">
+                    <div class="step-num">02</div>
+                    <h3 class="step-title" data-i18n="step2_title">Chuẩn Bị & Đồng Bộ</h3>
+                    <p class="step-desc" data-i18n="step2_desc">Đồng bộ tự động từ SAP, Oracle, Fast, Bravo, MISA hoặc Excel. Map hệ thống tài khoản riêng sang CoA Tập đoàn.</p>
+                    <span class="step-badge" data-i18n="step2_badge">Đồng bộ ERP</span>
+                </div>
+
+                <div class="glass-panel step-card" onclick="openStepModal(3)">
+                    <div class="step-num">03</div>
+                    <h3 class="step-title" data-i18n="step3_title">Đối Chiếu & Chuyển Đổi</h3>
+                    <p class="step-desc" data-i18n="step3_desc">Quy đổi ngoại tệ FX (tỷ giá BS, PL, OCI), đối chiếu tự động giao dịch nội bộ IC & doanh thu chưa thực hiện UPR.</p>
+                    <span class="step-badge" data-i18n="step3_badge">Khớp IC & FX</span>
+                </div>
+
+                <div class="glass-panel step-card" onclick="openStepModal(4)">
+                    <div class="step-num">04</div>
+                    <h3 class="step-title" data-i18n="step4_title">Điều Chỉnh Hợp Nhất</h3>
+                    <p class="step-desc" data-i18n="step4_desc">Hạch toán khử vốn đầu tư công ty con, phân bổ Lợi thế Thương mại Goodwill, Lợi nhuận nội bộ & Lợi ích NCI.</p>
+                    <span class="step-badge" data-i18n="step4_badge">Khử vốn & Goodwill</span>
+                </div>
+
+                <div class="glass-panel step-card" onclick="openStepModal(5)">
+                    <div class="step-num">05</div>
+                    <h3 class="step-title" data-i18n="step5_title">Kiểm Tra & Phát Hành</h3>
+                    <p class="step-desc" data-i18n="step5_desc">Xuất bộ BCTC Hợp nhất BS, PL, CF, Thuyết minh và chạy tự động 100% kịch bản kiểm tra chéo cân đối.</p>
+                    <span class="step-badge" data-i18n="step5_badge">100% Validation</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Analytics & Visual Performance -->
+        <section id="analytics">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="analytics_sub">Phân Tích Hiệu Năng</span>
+                <h2 class="section-title" data-i18n="analytics_title">Trực Quan Hóa Nghiệp Vụ Hợp Nhất</h2>
+            </div>
+
+            <div class="analytics-grid">
+                <!-- Chart 1: Time Reduction -->
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title" data-i18n="chart1_title">Thời Gian Hoàn Thành Kỳ Hợp Nhất (Giờ)</h3>
+                        <i data-lucide="clock" style="color: var(--primary);"></i>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Elimination Breakdown -->
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title" data-i18n="chart2_title">Tỷ Trọng Các Bút Toán Loại Trừ</h3>
+                        <i data-lucide="pie-chart" style="color: var(--accent);"></i>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="eliminationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Capabilities & Modules -->
+        <section id="modules">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="modules_sub">Kiến Trúc Đột Phá</span>
+                <h2 class="section-title" data-i18n="modules_title">Các Module & Chức Năng Cốt Lõi</h2>
+            </div>
+
+            <div class="modules-grid">
+                <div class="glass-panel module-card">
+                    <div class="module-icon"><i data-lucide="git-fork"></i></div>
+                    <h3 class="module-title" data-i18n="mod1_title">Quản Lý Cây Hợp Nhất</h3>
+                    <ul class="module-list">
+                        <li data-i18n="mod1_li1">Phân cấp nhiều Nút Hợp Nhất (Consolidation Nodes)</li>
+                        <li data-i18n="mod1_li2">Cập nhật linh hoạt tỷ lệ sở hữu trực tiếp/gián tiếp</li>
+                        <li data-i18n="mod1_li3">Tự động xử lý hợp nhất toàn phần & Equity Method</li>
+                    </ul>
+                </div>
+
+                <div class="glass-panel module-card">
+                    <div class="module-icon"><i data-lucide="refresh-cw"></i></div>
+                    <h3 class="module-title" data-i18n="mod2_title">FX & Chuyển Đổi Tiền Tệ</h3>
+                    <ul class="module-list">
+                        <li data-i18n="mod2_li1">Quy đổi ngoại tệ theo Tỷ giá BS, PL & Lịch sử</li>
+                        <li data-i18n="mod2_li2">Tự động tính chênh lệch tỷ giá quy đổi BCTC (OCI)</li>
+                        <li data-i18n="mod2_li3">Hỗ trợ chế độ Nhân/Chia giảm thiểu sai số làm tròn</li>
+                    </ul>
+                </div>
+
+                <div class="glass-panel module-card">
+                    <div class="module-icon"><i data-lucide="scale"></i></div>
+                    <h3 class="module-title" data-i18n="mod3_title">Phân Bổ Goodwill & NCI</h3>
+                    <ul class="module-list">
+                        <li data-i18n="mod3_li1">Tự động xác định Lợi thế thương mại (Goodwill)</li>
+                        <li data-i18n="mod3_li2">Phân bổ khấu hao & suy giảm giá trị hàng kỳ</li>
+                        <li data-i18n="mod3_li3">Tự động tính Lợi ích Cổ đông Không kiểm soát NCI</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Consolidated Reports Matrix -->
+        <section id="reports">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="reports_sub">Hệ Thống Báo Cáo Chuẩn Hóa</span>
+                <h2 class="section-title" data-i18n="reports_title">Bộ Báo Cáo Tài Chính Hợp Nhất</h2>
+            </div>
+
+            <div class="glass-panel">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab('bs')" data-i18n="tab_bs">Bảng Cân Đối Kế Toán (BS)</button>
+                    <button class="tab-btn" onclick="switchTab('pl')" data-i18n="tab_pl">Kết Quả Kinh Doanh (PL)</button>
+                    <button class="tab-btn" onclick="switchTab('cf')" data-i18n="tab_cf">Lưu Chuyển Tiền Tệ (CF)</button>
+                </div>
+
+                <div id="tab-bs" class="tab-content active">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="th_code">Mã Số</th>
+                                <th data-i18n="th_item">Chỉ Tiêu Hợp Nhất</th>
+                                <th data-i18n="th_rule">Nguyên Tắc Xử Lý Hợp Nhất FPT CFS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>100</code></td>
+                                <td style="font-weight: 700;">TỔNG TÀI SẢN HỢP NHẤT</td>
+                                <td data-i18n="bs_r1">Cộng hợp các đơn vị riêng (-) Loại trừ công nợ nội bộ IC (-) Loại trừ lợi nhuận chưa thực hiện UPR trong hàng tồn kho & TSCĐ.</td>
+                            </tr>
+                            <tr>
+                                <td><code>161</code></td>
+                                <td>Lợi thế thương mại (Goodwill)</td>
+                                <td data-i18n="bs_r2">Giá phí mua (-) Giá trị hợp lý tài sản thuần công ty con tại ngày mua (-) Lũy kế phân bổ/suy giảm giá trị.</td>
+                            </tr>
+                            <tr>
+                                <td><code>400</code></td>
+                                <td style="font-weight: 700;">TỔNG NỢ PHẢI TRẢ HỢP NHẤT</td>
+                                <td data-i18n="bs_r3">Cộng hợp (-) Khử toàn bộ các khoản Phải trả nội bộ giữa các công ty thành viên trong Tập đoàn.</td>
+                            </tr>
+                            <tr>
+                                <td><code>429</code></td>
+                                <td>Lợi ích cổ đông không kiểm soát (NCI)</td>
+                                <td data-i18n="bs_r4">Tỷ lệ NCI * (Vốn CSH Công ty con + Điều chỉnh giá trị hợp lý tài sản thuần tại thời điểm hợp nhất).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="tab-pl" class="tab-content">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="th_code">Mã Số</th>
+                                <th data-i18n="th_item">Chỉ Tiêu Hợp Nhất</th>
+                                <th data-i18n="th_rule">Nguyên Tắc Xử Lý Hợp Nhất FPT CFS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>01</code></td>
+                                <td style="font-weight: 700;">Doanh thu bán hàng và cung cấp dịch vụ</td>
+                                <td data-i18n="pl_r1">Cộng hợp (-) Khử 100% doanh thu bán hàng & dịch vụ nội bộ giữa các đơn vị thuộc Cây Hợp Nhất.</td>
+                            </tr>
+                            <tr>
+                                <td><code>11</code></td>
+                                <td>Giá vốn hàng bán</td>
+                                <td data-i18n="pl_r2">Cộng hợp (-) Khử giá vốn hàng bán nội bộ (-) Điều chỉnh Lợi nhuận chưa thực hiện UPR trong tồn kho.</td>
+                            </tr>
+                            <tr>
+                                <td><code>61</code></td>
+                                <td>Lợi nhuận sau thuế của Cổ đông Công ty mẹ</td>
+                                <td data-i18n="pl_r3">LNST hợp nhất tập đoàn (-) Phần Lợi nhuận sau thuế phân bổ cho Cổ đông Không kiểm soát (NCI).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="tab-cf" class="tab-content">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="th_code">Mã Số</th>
+                                <th data-i18n="th_item">Chỉ Tiêu Hợp Nhất</th>
+                                <th data-i18n="th_rule">Nguyên Tắc Xử Lý Hợp Nhất FPT CFS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>20</code></td>
+                                <td>Lưu chuyển tiền từ hoạt động kinh doanh</td>
+                                <td data-i18n="cf_r1">Loại trừ toàn bộ dòng tiền luân chuyển nội bộ giữa các công ty con/mẹ trong tập đoàn.</td>
+                            </tr>
+                            <tr>
+                                <td><code>70</code></td>
+                                <td style="font-weight: 700;">Tiền và tương đương tiền cuối kỳ</td>
+                                <td data-i18n="cf_r2">Đảm bảo 100% bằng chỉ tiêu Tiền và các khoản tương đương tiền trên Bảng Cân đối Kế toán Hợp nhất.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Audit Validation Checklist -->
+        <section id="audit">
+            <div class="section-header">
+                <span class="section-subtitle" data-i18n="audit_sub">Kiểm Soát Rủi Ro Kế Toán</span>
+                <h2 class="section-title" data-i18n="audit_title">Ma Trận Kiểm Tra Chéo 100% Đẳng Thức</h2>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="auditSearch" class="input-search" placeholder="Search check rule or formula..." onkeyup="filterAuditTable()">
+            </div>
+
+            <div class="glass-panel" style="padding: 24px;">
+                <table class="report-table" id="auditTable">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th data-i18n="th_audit_name">Tên Kiểm Tra Chéo</th>
+                            <th data-i18n="th_formula">Công Thức Đẳng Thức Kế Toán</th>
+                            <th data-i18n="th_status">Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td style="font-weight: 700;">Cân Đối Bảng Cân Đối Kế Toán</td>
+                            <td><code>Tổng Tài Sản - (Tổng Nợ Phải Trả + VCSH) = 0</code></td>
+                            <td><span class="status-tag status-pass"><i data-lucide="check"></i> PASSED (100%)</span></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td style="font-weight: 700;">Cân Đối BS - PL (Lợi Nhuận)</td>
+                            <td><code>LNST Chưa Phân Phối (BS) - LNST Lũy Kế (PL) = 0</code></td>
+                            <td><span class="status-tag status-pass"><i data-lucide="check"></i> PASSED (100%)</span></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td style="font-weight: 700;">Đối Chiếu Công Nợ Nội Bộ (IC)</td>
+                            <td><code>Phải Thu Nội Bộ - Phải Trả Nội Bộ = 0</code></td>
+                            <td><span class="status-tag status-pass"><i data-lucide="check"></i> PASSED (100%)</span></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td style="font-weight: 700;">Đối Chiếu Doanh Thu / Chi Phí Nội Bộ</td>
+                            <td><code>Doanh Thu Nội Bộ - Chi Phí Nội Bộ = 0</code></td>
+                            <td><span class="status-tag status-pass"><i data-lucide="check"></i> PASSED (100%)</span></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td style="font-weight: 700;">Khớp Lưu Chuyển Tiền Tệ CF - BS</td>
+                            <td><code>Tiền Cuối Kỳ (CF) - Tiền (BS) = 0</code></td>
+                            <td><span class="status-tag status-pass"><i data-lucide="check"></i> PASSED (100%)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Detail for Steps -->
+    <div class="modal-overlay" id="stepModal">
+        <div class="glass-panel modal-card">
+            <button class="modal-close" onclick="closeStepModal()"><i data-lucide="x"></i></button>
+            <h3 id="modalTitle" style="font-size: 22px; font-weight: 800; margin-bottom: 16px;">Step Detail</h3>
+            <div id="modalBody" style="color: var(--text-muted); font-size: 14px; line-height: 1.7;">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>FPT CFS v2.0.3 Financial Consolidation Solution Showcase Dashboard • Based on FPT CFS User Manual v1.06 (14/03/2025)</p>
+            <p style="margin-top: 8px; color: var(--text-dim);">Developed with Antigravity AI Showcase Engine</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Lucide Icons Initialization
+        lucide.createIcons();
+
+        // Bi-lingual Dictionary
+        const i18n = {
+            vi: {
+                app_title: "FPT CFS Dashboard",
+                hero_pill: "Giải Pháp Hợp Nhất BCTC Đột Phá VAS 25 / IFRS 10",
+                hero_title: "Tự Động Hoá Hợp Nhất <br><span class=\"gradient-text\">Báo Cáo Tài Chính Tập Đoàn</span>",
+                hero_desc: "FPT CFS v2.0.3 cung cấp nền tảng chuẩn hóa quy trình 5 bước: Khai báo kỳ, Đồng bộ dữ liệu ERP, Khớp giao dịch nội bộ IC, Phân bổ Goodwill/NCI và Kiểm tra chéo 100% đẳng thức cân đối kế toán.",
+                btn_explore: "Khám Phá Quy Trình 5 Bước",
+                btn_audit: "Xem Ma Trận Kiểm Tra Chéo",
+                stat_pages: "Trang Hướng Dẫn Vận Hành",
+                stat_speed: "Rút Ngắn Thời Gian Lập BCTC",
+                stat_check: "Kiểm Tra Đẳng Thức Tự Động",
+                stat_stages: "Giai Đoạn Quy Trình Hợp Nhất",
+                workflow_sub: "Quy Trình Nghiệp Vụ Chỉnh Chu",
+                workflow_title: "Luồng Vận Hành Hợp Nhất 5 Bước",
+                workflow_desc: "Click vào từng bước để xem chi tiết các thủ tục, đầu vào và đầu ra hệ thống.",
+                step1_title: "Bắt Đầu Kỳ Kế Toán",
+                step1_desc: "Mở kỳ kế toán mới, tự động mang sang số dư đầu kỳ BS, khai báo tỷ giá BS/PL và cập nhật phạm vi hợp nhất.",
+                step1_badge: "Thiết lập chung",
+                step2_title: "Chuẩn Bị & Đồng Bộ",
+                step2_desc: "Đồng bộ tự động từ SAP, Oracle, Fast, Bravo, MISA hoặc Excel. Map hệ thống tài khoản riêng sang CoA Tập đoàn.",
+                step2_badge: "Đồng bộ ERP",
+                step3_title: "Đối Chiếu & Chuyển Đổi",
+                step3_desc: "Quy đổi ngoại tệ FX (tỷ giá BS, PL, OCI), đối chiếu tự động giao dịch nội bộ IC & doanh thu chưa thực hiện UPR.",
+                step3_badge: "Khớp IC & FX",
+                step4_title: "Điều Chỉnh Hợp Nhất",
+                step4_desc: "Hạch toán khử vốn đầu tư công ty con, phân bổ Lợi thế Thương mại Goodwill, Lợi nhuận nội bộ & Lợi ích NCI.",
+                step4_badge: "Khử vốn & Goodwill",
+                step5_title: "Kiểm Tra & Phát Hành",
+                step5_desc: "Xuất bộ BCTC Hợp nhất BS, PL, CF, Thuyết minh và chạy tự động 100% kịch bản kiểm tra chéo cân đối.",
+                step5_badge: "100% Validation",
+                analytics_sub: "Phân Tích Hiệu Năng",
+                analytics_title: "Trực Quan Hóa Nghiệp Vụ Hợp Nhất",
+                chart1_title: "Thời Gian Hoàn Thành Kỳ Hợp Nhất (Giờ)",
+                chart2_title: "Tỷ Trọng Các Bút Toán Loại Trừ",
+                modules_sub: "Kiến Trúc Đột Phá",
+                modules_title: "Các Module & Chức Năng Cốt Lõi",
+                mod1_title: "Quản Lý Cây Hợp Nhất",
+                mod1_li1: "Phân cấp nhiều Nút Hợp Nhất (Consolidation Nodes)",
+                mod1_li2: "Cập nhật linh hoạt tỷ lệ sở hữu trực tiếp/gián tiếp",
+                mod1_li3: "Tự động xử lý hợp nhất toàn phần & Equity Method",
+                mod2_title: "FX & Chuyển Đổi Tiền Tệ",
+                mod2_li1: "Quy đổi ngoại tệ theo Tỷ giá BS, PL & Lịch sử",
+                mod2_li2: "Tự động tính chênh lệch tỷ giá quy đổi BCTC (OCI)",
+                mod2_li3: "Hỗ trợ chế độ Nhân/Chia giảm thiểu sai số làm tròn",
+                mod3_title: "Phân Bổ Goodwill & NCI",
+                mod3_li1: "Tự động xác định Lợi thế thương mại (Goodwill)",
+                mod3_li2: "Phân bổ khấu hao & suy giảm giá trị hàng kỳ",
+                mod3_li3: "Tự động tính Lợi ích Cổ đông Không kiểm soát NCI",
+                reports_sub: "Hệ Thống Báo Cáo Chuẩn Hóa",
+                reports_title: "Bộ Báo Cáo Tài Chính Hợp Nhất",
+                tab_bs: "Bảng Cân Đối Kế Toán (BS)",
+                tab_pl: "Kết Quả Kinh Doanh (PL)",
+                tab_cf: "Lưu Chuyển Tiền Tệ (CF)",
+                audit_sub: "Kiểm Soát Rủi Ro Kế Toán",
+                audit_title: "Ma Trận Kiểm Tra Chéo 100% Đẳng Thức",
+                th_code: "Mã Số",
+                th_item: "Chỉ Tiêu Hợp Nhất",
+                th_rule: "Nguyên Tắc Xử Lý Hợp Nhất FPT CFS",
+                th_audit_name: "Tên Kiểm Tra Chéo",
+                th_formula: "Công Thức Đẳng Thức Kế Toán",
+                th_status: "Trạng Thái"
+            },
+            en: {
+                app_title: "FPT CFS Dashboard",
+                hero_pill: "Breakthrough VAS 25 / IFRS 10 Financial Consolidation",
+                hero_title: "Automate Enterprise <br><span class=\"gradient-text\">Financial Consolidation</span>",
+                hero_desc: "FPT CFS v2.0.3 delivers a standardized 5-step operational framework: Period setup, ERP data sync, Intercompany reconciliation, Goodwill/NCI allocation, and 100% automated accounting equation validation.",
+                btn_explore: "Explore 5-Step Process",
+                btn_audit: "View Audit Validation Matrix",
+                stat_pages: "Operations Manual Pages",
+                stat_speed: "Faster Consolidation Time",
+                stat_check: "Automated Equation Checks",
+                stat_stages: "Consolidation Process Stages",
+                workflow_sub: "Standardized Operational Flow",
+                workflow_title: "5-Step Consolidation Pipeline",
+                workflow_desc: "Click any step to view input requirements, system procedures, and output artifacts.",
+                step1_title: "Period Initialization",
+                step1_desc: "Open new accounting period, auto carry forward BS balances, set BS/PL FX rates, and update consolidation scope.",
+                step1_badge: "General Setup",
+                step2_title: "Data Prep & Sync",
+                step2_desc: "Auto-sync from SAP, Oracle, Fast, Bravo, MISA or Excel. Map local CoA to Group Chart of Accounts.",
+                step2_badge: "ERP Connectors",
+                step3_title: "Reconcile & FX Translate",
+                step3_desc: "FX Translation (BS/PL/OCI rates), auto-match intercompany (IC) transactions & unrealized profit (UPR).",
+                step3_badge: "IC & FX Match",
+                step4_title: "Consolidation Adjustments",
+                step4_desc: "Eliminate equity investment in subsidiaries, amortize Goodwill, allocate intercompany profits & NCI interests.",
+                step4_badge: "Elimination & Goodwill",
+                step5_title: "Validation & Issuance",
+                step5_desc: "Export consolidated BS, PL, CF, FS Notes, and run 100% automated cross-check validation rules.",
+                step5_badge: "100% Validation",
+                analytics_sub: "Performance Analytics",
+                analytics_title: "Consolidation Business Intelligence",
+                chart1_title: "Consolidation Completion Time (Hours)",
+                chart2_title: "Elimination Entry Breakdown",
+                modules_sub: "Engine Architecture",
+                modules_title: "Core System Capabilities & Modules",
+                mod1_title: "Consolidation Tree Engine",
+                mod1_li1: "Multi-tier Consolidation Node hierarchy",
+                mod1_li2: "Flexible direct & indirect ownership tracking",
+                mod1_li3: "Automated full consolidation & Equity Method",
+                mod2_title: "FX Translation Engine",
+                mod2_li1: "Multi-rate translation (BS, PL & Historical)",
+                mod2_li2: "Automated OCI foreign currency translation reserve",
+                mod2_li3: "Multiply / Divide mode to eliminate rounding error",
+                mod3_title: "Goodwill & NCI Management",
+                mod3_li1: "Automated Goodwill calculation at acquisition",
+                mod3_li2: "Amortization & impairment allocation engine",
+                mod3_li3: "Automated Non-Controlling Interest (NCI) allocation",
+                reports_sub: "Standardized Reporting Suite",
+                reports_title: "Consolidated Financial Statements",
+                tab_bs: "Balance Sheet (BS)",
+                tab_pl: "Profit & Loss (PL)",
+                tab_cf: "Cash Flow (CF)",
+                audit_sub: "Risk & Integrity Control",
+                audit_title: "100% Cross-Check Accounting Matrix",
+                th_code: "Code",
+                th_item: "Consolidated Item",
+                th_rule: "FPT CFS Consolidation Logic",
+                th_audit_name: "Audit Rule Name",
+                th_formula: "Accounting Equation Formula",
+                th_status: "Status"
+            }
+        };
+
+        let currentLang = 'vi';
+
+        // Language Switcher Function
+        document.getElementById('langToggle').addEventListener('click', () => {
+            currentLang = currentLang === 'vi' ? 'en' : 'vi';
+            document.getElementById('langText').innerText = currentLang === 'vi' ? 'EN' : 'VI';
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) {
+                    el.innerHTML = i18n[currentLang][key];
+                }
+            });
+        });
+
+        // Theme Toggle Function
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            icon.setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+            lucide.createIcons();
+
+            // Re-render charts with updated theme colors
+            initCharts(newTheme);
+        });
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // Search Filter for Audit Table
+        function filterAuditTable() {
+            const query = document.getElementById('auditSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#auditTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // Step Detail Modal Popup Data
+        const stepDetails = {
+            1: {
+                vi: "<h4>Bước 1: Bắt Đầu Kỳ Kế Toán</h4><p>• <b>Thao tác:</b> Truy cập 'Thiết lập chung → Q.lý Công ty → Q.lý Kỳ K.toán'.<br>• <b>Mang sang số dư:</b> Hệ thống CFS tự động nhóm số dư BS từ kỳ trước sang đầu kỳ mới theo đúng đẳng thức kế toán.<br>• <b>Khai báo tỷ giá:</b> Nhập tỷ giá BS (Bảng cân đối) và tỷ giá PL (KQKD) cho từng ngoại tệ, hỗ trợ tùy chọn quy đổi Nhân hoặc Chia.<br>• <b>Phạm vi hợp nhất:</b> Cập nhật tỷ lệ sở hữu, tỷ lệ kiểm soát, phương pháp hợp nhất (Hợp nhất toàn phần / Equity method).</p>",
+                en: "<h4>Step 1: Period Initialization</h4><p>• <b>Action:</b> Navigate to 'General Setup → Company Mgmt → Period Mgmt'.<br>• <b>Carry Forward:</b> System automatically carries forward BS balances maintaining accounting equality.<br>• <b>FX Rates:</b> Declare BS (Balance Sheet) & PL (Income Statement) exchange rates with Multiply/Divide modes.<br>• <b>Scope Update:</b> Update direct/indirect ownership %, control %, and consolidation method.</p>"
+            },
+            2: {
+                vi: "<h4>Bước 2: Chuẩn Bị & Đồng Bộ Dữ Liệu</h4><p>• <b>Đồng bộ dữ liệu:</b> Hỗ trợ đồng bộ theo lịch hoặc đẩy dữ liệu tự động từ các hệ thống ERP (SAP, Oracle, Fast, Bravo, MISA, Excel).<br>• <b>Chuẩn hóa tài khoản:</b> Tự động ánh xạ (Map) Hệ thống tài khoản riêng (CoA riêng) sang Hệ thống tài khoản Tập đoàn (CoA Hợp nhất).<br>• <b>Kiểm tra đầu vào:</b> Kiểm tra tính cân đối và nhất quán của Bảng cân đối phát sinh từng bộ sổ kế toán con.</p>",
+                en: "<h4>Step 2: Data Preparation & ERP Sync</h4><p>• <b>ERP Connectors:</b> Automated scheduled or on-demand sync from SAP, Oracle, Fast, Bravo, MISA, or Excel files.<br>• <b>CoA Mapping:</b> Map entity Chart of Accounts (CoA) to Group Consolidated CoA.<br>• <b>Validation:</b> Verify balance integrity of individual trial balances prior to consolidation.</p>"
+            },
+            3: {
+                vi: "<h4>Bước 3: Đối Chiếu & Chuyển Đổi Tiền Tệ</h4><p>• <b>Chuyển đổi BCTC ngoại tệ:</b> Quy đổi Tài sản/Nợ phải trả theo Tỷ giá BS, Doanh thu/Chi phí theo Tỷ giá PL. Chênh lệch ghi nhận vào Chênh lệch tỷ giá BCTC (OCI) thuộc Vốn CSH.<br>• <b>Đối chiếu IC:</b> Chạy công cụ quẹt khớp giao dịch & số dư nội bộ (Công nợ Phải thu/Trả, Doanh thu/Chi phí, Cổ tức).<br>• <b>Lợi nhuận chưa thực hiện (UPR):</b> Khai báo UPR trong hàng tồn kho và TSCĐ để phục vụ loại trừ.</p>",
+                en: "<h4>Step 3: FX Translation & Intercompany Match</h4><p>• <b>FX Translation:</b> Assets/Liabilities translated at BS rate, Revenue/Expenses at PL rate; difference routed to OCI translation reserve.<br>• <b>IC Match:</b> Auto-match intercompany balances (AR/AP, Sales/COGS, Dividends) and flag mismatch items.<br>• <b>Unrealized Profit (UPR):</b> Track unrealized intercompany margins in inventory and fixed assets.</p>"
+            },
+            4: {
+                vi: "<h4>Bước 4: Điều Chỉnh Hợp Nhất & Khử Vốn</h4><p>• <b>Khai báo đầu tư vốn:</b> Khai báo thay đổi vốn điều lệ, mua/bán cổ phần công ty con, mua cổ phiếu quỹ.<br>• <b>Bút toán khử vốn:</b> Tự động khử khoản đầu tư của công ty mẹ vào công ty con và ghi nhận Lợi ích cổ đông không kiểm soát (NCI) ban đầu.<br>• <b>Phân bổ Goodwill & UPR:</b> Phân bổ khấu hao Lợi thế thương mại, khử Doanh thu/Giá vốn nội bộ & phân bổ NCI kỳ hiện tại.</p>",
+                en: "<h4>Step 4: Consolidation Adjustments & Elimination</h4><p>• <b>Investment Setup:</b> Record capital changes, stock purchases, treasury stock, dividend stock.<br>• <b>Investment Elimination:</b> Auto-generate investment elimination entries against subsidiary equity & record initial NCI.<br>• <b>Goodwill & UPR Allocation:</b> Amortize Goodwill, eliminate intercompany sales/margin & compute period NCI allocation.</p>"
+            },
+            5: {
+                vi: "<h4>Bước 5: Kiểm Tra & Phát Hành Báo Cáo</h4><p>• <b>Xuất BCTC Hợp nhất:</b> Bảng cân đối kế toán Hợp nhất (BS), Báo cáo KQKD Hợp nhất (PL), Lưu chuyển tiền tệ Hợp nhất (CF), Thuyết minh BCTC.<br>• <b>Kiểm tra chéo 100%:</b> Hệ thống tự động kiểm tra 100+ kịch bản đẳng thức (Cân đối BS, BS = PL, Khử IC = 0, Tiền CF = Tiền BS).<br>• <b>Khóa kỳ:</b> Khóa kỳ kế toán và phát hành BCTC Hợp nhất chính thức.</p>",
+                en: "<h4>Step 5: Audit Check & Report Issuance</h4><p>• <b>Consolidated Statements:</b> Export Consolidated BS, PL, Cash Flow (CF), and Notes to Financial Statements.<br>• <b>100% Validation:</b> Auto-validate 100+ accounting equations (BS balance, Retained Earnings link, IC balance zeroing, CF cash balance match).<br>• <b>Lock & Publish:</b> Close consolidation period and release approved financial reports.</p>"
+            }
+        };
+
+        function openStepModal(stepNum) {
+            const detail = stepDetails[stepNum][currentLang];
+            document.getElementById('modalTitle').innerText = (currentLang === 'vi' ? 'Chi Tiết Bước ' : 'Step Detail ') + stepNum;
+            document.getElementById('modalBody').innerHTML = detail;
+            document.getElementById('stepModal').style.display = 'flex';
+        }
+
+        function closeStepModal() {
+            document.getElementById('stepModal').style.display = 'none';
+        }
+
+        // Chart.js Instances
+        let timeChartInstance = null;
+        let eliminationChartInstance = null;
+
+        function initCharts(theme = 'dark') {
+            const textColor = theme === 'dark' ? '#94a3b8' : '#475569';
+            const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+            // Time Reduction Chart
+            const ctx1 = document.getElementById('timeChart').getContext('2d');
+            if (timeChartInstance) timeChartInstance.destroy();
+
+            timeChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Quy Trình Thủ Công (Excel)', 'Hệ Thống Khác', 'FPT CFS v2.0.3'],
+                    datasets: [{
+                        label: 'Số giờ thực hiện / kỳ',
+                        data: [120, 48, 4],
+                        backgroundColor: [
+                            'rgba(244, 63, 94, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(16, 185, 129, 0.85)'
+                        ],
+                        borderColor: [
+                            '#f43f5e',
+                            '#f59e0b',
+                            '#10b981'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                    }
+                }
+            });
+
+            // Elimination Breakdown Chart
+            const ctx2 = document.getElementById('eliminationChart').getContext('2d');
+            if (eliminationChartInstance) eliminationChartInstance.destroy();
+
+            eliminationChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Khử IC Công Nợ & Doanh Thu', 'Khử Vốn Đầu Tư & NCI', 'Loại Trừ UPR Hàng Tồn Kho', 'Phân Bổ Goodwill'],
+                    datasets: [{
+                        data: [45, 30, 15, 10],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#8b5cf6',
+                            '#10b981',
+                            '#06b6d4'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 12 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts('dark');
+        });
+    </script>
+</body>
+</html>

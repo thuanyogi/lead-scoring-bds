@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & credentials
+.env
+token.json
+credentials*.json
+*.json.secret
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
