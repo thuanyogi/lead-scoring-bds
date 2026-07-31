@@ -249,6 +249,8 @@ def main():
                 scores = []
                 tiers = []
                 reasons = []
+                statuses = []
+                auto_approved_cnt = 0
                 
                 for idx, row in st.session_state.df_leads.iterrows():
                     mo_ta = str(row.get("nhu_cau_mo_ta", ""))
@@ -257,10 +259,19 @@ def main():
                     tiers.append(tr)
                     reasons.append(rs)
                     
+                    # Tự động chuyển trạng thái các khách hàng có điểm AI >= 100 sang "Đã duyệt"
+                    if sc >= 100:
+                        statuses.append("Đã duyệt")
+                        auto_approved_cnt += 1
+                    else:
+                        current_status = row.get("Trang_Thai_Duyet", "Chưa duyệt")
+                        statuses.append(current_status if current_status != "Chưa chấm" else "Chưa duyệt")
+                    
                 st.session_state.df_leads["Diem_So"] = scores
                 st.session_state.df_leads["Phan_Loai"] = tiers
                 st.session_state.df_leads["Ly_Do_Cham_Diem"] = reasons
-                st.success(f"⚡ Đã hoàn thành chấm điểm AI cho {len(st.session_state.df_leads)} leads!")
+                st.session_state.df_leads["Trang_Thai_Duyet"] = statuses
+                st.success(f"⚡ Đã hoàn thành chấm điểm AI cho {len(st.session_state.df_leads)} leads! (Đã tự động duyệt {auto_approved_cnt} lead điểm ≥ 100)")
                 st.rerun()
 
     with col_act2:
