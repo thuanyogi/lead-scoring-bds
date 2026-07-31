@@ -3,6 +3,8 @@ import pandas as pd
 import re
 import os
 import io
+import plotly.express as px
+import plotly.graph_objects as go
 
 # ---------------------------------------------------------
 # CONSTANTS & PATHS
@@ -134,43 +136,158 @@ def ai_scoring_agent(mo_ta):
     return score, tier, explanation
 
 # ---------------------------------------------------------
-# MAIN STREAMLIT APP RUNNER
+# MAIN STREAMLIT APP RUNNER (PREMIUM ORANGE THEME)
 # ---------------------------------------------------------
 def main():
     st.set_page_config(
-        page_title="Hệ Thống Lead Scoring Bất Động Sản",
-        page_icon="🏠",
+        page_title="Lead Scoring BĐS - Premium Orange Dashboard",
+        page_icon="🍊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
 
-    # Custom Styling
+    # ---------------------------------------------------------
+    # CUSTOM CSS: PREMIUM DARK & ORANGE DOMINANT THEME
+    # ---------------------------------------------------------
     st.markdown("""
     <style>
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* App Background */
         .stApp {
-            background-color: #0e1117;
-            color: #e0e6ed;
+            background-color: #0d0f14;
+            color: #f1f5f9;
         }
+
+        /* Sidebar Styling */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #161922 0%, #0d0f14 100%);
+            border-right: 1px solid rgba(249, 115, 22, 0.15);
+        }
+
+        /* Orange Glow Header Card */
         .header-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(30, 27, 24, 0.8) 50%, rgba(13, 15, 20, 0.95) 100%);
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            border-radius: 20px;
+            padding: 28px 32px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 10px 30px -5px rgba(249, 115, 22, 0.25);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
         }
+        .header-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 6px; height: 100%;
+            background: linear-gradient(180deg, #ff6b00 0%, #f97316 50%, #fb923c 100%);
+        }
+        
         .header-title {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff6b00 0%, #f97316 40%, #fb923c 80%, #fed7aa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
         }
+        
         .header-subtitle {
-            color: #94a3b8;
+            color: #cbd5e1;
             font-size: 14px;
+            font-weight: 400;
+            line-height: 1.5;
         }
+
+        /* Orange Custom Metric Cards */
+        .orange-metric-card {
+            background: rgba(22, 25, 34, 0.7);
+            border: 1px solid rgba(249, 115, 22, 0.2);
+            border-radius: 16px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .orange-metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(249, 115, 22, 0.6);
+            box-shadow: 0 8px 25px rgba(249, 115, 22, 0.3);
+        }
+        .orange-metric-val {
+            font-size: 30px;
+            font-weight: 800;
+            color: #ff8c00;
+            margin-bottom: 2px;
+        }
+        .orange-metric-lbl {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }
+        .orange-metric-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-top: 6px;
+        }
+
+        /* Orange Styled Primary Buttons */
+        div.stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #ff6b00 0%, #ea580c 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            padding: 12px 24px !important;
+            box-shadow: 0 4px 20px rgba(234, 88, 12, 0.4) !important;
+            transition: all 0.25s ease !important;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background: linear-gradient(135deg, #ff8c00 0%, #f97316 100%) !important;
+            box-shadow: 0 6px 25px rgba(249, 115, 22, 0.6) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* Streamlit Tabs Styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 12px;
+            background-color: rgba(22, 25, 34, 0.5);
+            padding: 8px;
+            border-radius: 14px;
+            border: 1px solid rgba(249, 115, 22, 0.15);
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 44px;
+            border-radius: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+            padding: 0 20px;
+        }
+        .stTabs [aria-selected="true"] {
+            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 15px rgba(234, 88, 12, 0.35);
+        }
+
+        /* Custom Scrollbar & Badges */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0d0f14; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f97316; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -198,15 +315,20 @@ def main():
 
     # SIDEBAR CONTROL
     with st.sidebar:
-        st.image("https://img.icons8.com/color/96/real-estate.png", width=64)
-        st.title("⚙️ Lead Scoring AI Control")
+        st.markdown("""
+        <div style="text-align: center; padding: 10px 0;">
+            <img src="https://img.icons8.com/gradient/96/real-estate.png" width="72"/>
+            <h2 style="margin-top: 10px; color: #ff8c00; font-size: 20px; font-weight: 800;">LEAD SCORING AI</h2>
+            <p style="color: #94a3b8; font-size: 12px;">Real Estate Agentic System</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        st.markdown("---")
-        st.subheader("📡 Nguồn Dữ Liệu")
+        st.markdown("<hr style='border-color: rgba(249, 115, 22, 0.2);'>", unsafe_allow_html=True)
+        st.subheader("📡 Nguồn Dữ Liệu Live")
         sheet_url_input = st.text_input(
             "Google Sheets CSV URL:",
             value=DEFAULT_SHEET_URL,
-            help="Đường dẫn CSV Export của trang tính Google Sheets"
+            help="Đường dẫn CSV Export từ Google Sheets"
         )
         
         if st.button("🔄 Tải Lại Dữ Liệu Gốc", use_container_width=True):
@@ -222,156 +344,338 @@ def main():
                 st.success("Đã tải lại dữ liệu mới thành công!")
                 st.rerun()
 
-        st.markdown("---")
-        st.subheader("📚 Knowledge Base (Tiêu chí)")
+        st.markdown("<hr style='border-color: rgba(249, 115, 22, 0.2);'>", unsafe_allow_html=True)
+        st.subheader("📚 Knowledge Base")
         kb_text = load_knowledge_base()
         
-        with st.expander("📖 Xem Quy Tắc Chấm Điểm", expanded=False):
-            st.text_area("File tieu_chi_cham_diem.txt:", value=kb_text, height=280, disabled=True)
+        with st.expander("📖 Quy Tắc Chấm Điểm (+50/-50)", expanded=False):
+            st.text_area("Cấu trúc tieu_chi_cham_diem.txt:", value=kb_text, height=260, disabled=True)
         
-        st.markdown("---")
-        st.caption("🤖 Antigravity AI Workspace v2.0 | Lead Scoring Agent")
+        st.markdown("<hr style='border-color: rgba(249, 115, 22, 0.2);'>", unsafe_allow_html=True)
+        st.caption("🍊 Orange Theme UI | Antigravity AI Workspace v2.5")
 
-    # MAIN INTERFACE
+    # MAIN HEADER CARD
     st.markdown("""
     <div class="header-card">
-        <div class="header-title">🏠 Hệ Thống Quản Lý & AI Lead Scoring Bất Động Sản</div>
-        <div class="header-subtitle">Tự động quét nhu cầu khách hàng từ Google Sheets, áp dụng quy tắc Knowledge Base (+50/-50 điểm) và hỗ trợ phê duyệt trực tiếp.</div>
+        <div class="header-title">🍊 Real Estate AI Lead Scoring & Dashboard</div>
+        <div class="header-subtitle">Hệ thống phân tích nhu cầu tự động, áp dụng tri thức chấm điểm BĐS và tự động phê duyệt Lead VIP (Điểm ≥ 100).</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Top Actions Toolbar
-    col_act1, col_act2, col_act3 = st.columns([2, 1, 1])
+    # Calculate Summary Statistics
+    df_leads = st.session_state.df_leads.copy()
+    total_leads = len(df_leads)
+    vip_leads = len(df_leads[df_leads["Phan_Loai"] == "🌟 VIP"])
+    tiemnang_leads = len(df_leads[df_leads["Phan_Loai"] == "🟢 Tiềm năng"])
+    rac_leads = len(df_leads[df_leads["Phan_Loai"] == "🔴 Khách rác/Spam"])
+    auto_approved_leads = len(df_leads[df_leads["Diem_So"] >= 100])
+    approved_leads = len(df_leads[df_leads["Trang_Thai_Duyet"] == "Đã duyệt"])
+    avg_score = round(df_leads["Diem_So"].mean(), 1) if total_leads > 0 else 0
 
-    with col_act1:
-        if st.button("🤖 Chạy AI Scoring (Scan & Auto Score Tất Cả Lead)", type="primary", use_container_width=True):
-            with st.spinner("AI Agent đang phân tích nội dung nhu cầu & áp dụng tri thức chấm điểm..."):
-                scores = []
-                tiers = []
-                reasons = []
-                statuses = []
-                auto_approved_cnt = 0
-                
-                for idx, row in st.session_state.df_leads.iterrows():
-                    mo_ta = str(row.get("nhu_cau_mo_ta", ""))
-                    sc, tr, rs = ai_scoring_agent(mo_ta)
-                    scores.append(sc)
-                    tiers.append(tr)
-                    reasons.append(rs)
-                    
-                    # Tự động chuyển trạng thái các khách hàng có điểm AI >= 100 sang "Đã duyệt"
-                    if sc >= 100:
-                        statuses.append("Đã duyệt")
-                        auto_approved_cnt += 1
-                    else:
-                        current_status = row.get("Trang_Thai_Duyet", "Chưa duyệt")
-                        statuses.append(current_status if current_status != "Chưa chấm" else "Chưa duyệt")
-                    
-                st.session_state.df_leads["Diem_So"] = scores
-                st.session_state.df_leads["Phan_Loai"] = tiers
-                st.session_state.df_leads["Ly_Do_Cham_Diem"] = reasons
-                st.session_state.df_leads["Trang_Thai_Duyet"] = statuses
-                st.success(f"⚡ Đã hoàn thành chấm điểm AI cho {len(st.session_state.df_leads)} leads! (Đã tự động duyệt {auto_approved_cnt} lead điểm ≥ 100)")
-                st.rerun()
+    # PREMIUM ORANGE STATS DASHBOARD CARDS
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
 
-    with col_act2:
-        tier_filter = st.selectbox(
-            "Lọc Phân Loại:",
-            ["Tất cả", "🌟 VIP", "🟢 Tiềm năng", "🔴 Khách rác/Spam", "Chưa chấm"]
-        )
+    with c1:
+        st.markdown(f"""
+        <div class="orange-metric-card">
+            <div class="orange-metric-val" style="color: #f8fafc;">{total_leads}</div>
+            <div class="orange-metric-lbl">TỔNG SỐ LEAD</div>
+            <div class="orange-metric-badge" style="background: rgba(255,255,255,0.1); color: #cbd5e1;">Google Sheets</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    with col_act3:
-        status_filter = st.selectbox(
-            "Trạng Thái Duyệt:",
-            ["Tất cả", "Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"]
-        )
+    with c2:
+        st.markdown(f"""
+        <div class="orange-metric-card" style="border-color: rgba(249, 115, 22, 0.6); background: rgba(249, 115, 22, 0.12);">
+            <div class="orange-metric-val" style="color: #ff8c00;">{vip_leads}</div>
+            <div class="orange-metric-lbl" style="color: #ffaa00;">KHÁCH VIP (≥50pt)</div>
+            <div class="orange-metric-badge" style="background: rgba(249, 115, 22, 0.25); color: #ffedd5;">{round(vip_leads/total_leads*100, 1) if total_leads>0 else 0}%</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Metrics Summary
-    df_current = st.session_state.df_leads.copy()
-    total_leads = len(df_current)
-    vip_count = len(df_current[df_current["Phan_Loai"] == "🌟 VIP"])
-    approved_count = len(df_current[df_current["Trang_Thai_Duyet"] == "Đã duyệt"])
-    avg_score = round(df_current["Diem_So"].mean(), 1) if total_leads > 0 else 0
+    with c3:
+        st.markdown(f"""
+        <div class="orange-metric-card">
+            <div class="orange-metric-val" style="color: #10b981;">{tiemnang_leads}</div>
+            <div class="orange-metric-lbl">TIỀM NĂNG (0-49pt)</div>
+            <div class="orange-metric-badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">{round(tiemnang_leads/total_leads*100, 1) if total_leads>0 else 0}%</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Tổng Số Lead", f"{total_leads}")
-    m2.metric("🌟 Khách VIP (+50pt)", f"{vip_count}", delta=f"{round(vip_count/total_leads*100, 1) if total_leads>0 else 0}%")
-    m3.metric("✅ Đã Duyệt", f"{approved_count}")
-    m4.metric("📊 Điểm Trung Bình", f"{avg_score} pts")
+    with c4:
+        st.markdown(f"""
+        <div class="orange-metric-card">
+            <div class="orange-metric-val" style="color: #f43f5e;">{rac_leads}</div>
+            <div class="orange-metric-lbl">KHÁCH RÁC / SPAM</div>
+            <div class="orange-metric-badge" style="background: rgba(244, 63, 94, 0.2); color: #fca5a5;">{round(rac_leads/total_leads*100, 1) if total_leads>0 else 0}%</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("---")
+    with c5:
+        st.markdown(f"""
+        <div class="orange-metric-card">
+            <div class="orange-metric-val" style="color: #fb923c;">{auto_approved_leads}</div>
+            <div class="orange-metric-lbl">TỰ ĐỘNG DUYỆT (≥100)</div>
+            <div class="orange-metric-badge" style="background: rgba(251, 146, 60, 0.2); color: #ffedd5;">Auto Approved</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Filtering logic
-    filtered_df = df_current.copy()
-    if tier_filter != "Tất cả":
-        filtered_df = filtered_df[filtered_df["Phan_Loai"] == tier_filter]
-    if status_filter != "Tất cả":
-        filtered_df = filtered_df[filtered_df["Trang_Thai_Duyet"] == status_filter]
+    with c6:
+        st.markdown(f"""
+        <div class="orange-metric-card">
+            <div class="orange-metric-val" style="color: #38bdf8;">{approved_leads}</div>
+            <div class="orange-metric-lbl">ĐÃ PHÊ DUYỆT</div>
+            <div class="orange-metric-badge" style="background: rgba(56, 189, 248, 0.2); color: #bae6fd;">Sales Approved</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.subheader("📋 Bảng Quản Lý Lead (Human-in-the-Loop Data Editor)")
-    st.caption("💡 Bạn có thể chỉnh sửa trực tiếp điểm số, xếp loại, trạng thái duyệt và ghi chú trên bảng bên dưới.")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Data Editor
-    edited_df = st.data_editor(
-        filtered_df,
-        key="data_editor_leads",
-        use_container_width=True,
-        num_rows="dynamic",
-        column_config={
-            "id": st.column_config.NumberColumn("ID", disabled=True, width="small"),
-            "ten_khach": st.column_config.TextColumn("Tên Khách", width="medium"),
-            "sdt": st.column_config.TextColumn("SĐT", width="medium"),
-            "nhu_cau_mo_ta": st.column_config.TextColumn("Nhu Cầu Mô Tả", width="large"),
-            "Diem_So": st.column_config.NumberColumn("Điểm AI", help="Điểm số đánh giá", width="small"),
-            "Phan_Loai": st.column_config.SelectboxColumn(
-                "Phân Loại (Tier)",
-                options=["🌟 VIP", "🟢 Tiềm năng", "🟡 Trung bình", "🔴 Khách rác/Spam", "Chưa chấm"],
-                width="medium"
-            ),
-            "Ly_Do_Cham_Diem": st.column_config.TextColumn("Lý Do Chấm Điểm (AI)", width="large"),
-            "Trang_Thai_Duyet": st.column_config.SelectboxColumn(
-                "Trạng Thái Duyệt",
-                options=["Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"],
-                width="medium"
-            ),
-            "Ghi_Chu_Sale": st.column_config.TextColumn("Ghi Chú của Sales", width="medium")
-        },
-        hide_index=True
-    )
+    # ---------------------------------------------------------
+    # MAIN TABS SYSTEM
+    # ---------------------------------------------------------
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Dashboard Thống Kê Trực Quan",
+        "📋 Bảng Quản Lý Lead (Data Editor)",
+        "📚 Knowledge Base Rules",
+        "📥 Export & Báo Cáo"
+    ])
 
-    # Synchronize edited changes back to session_state
-    if not edited_df.equals(filtered_df):
-        for idx in edited_df.index:
-            st.session_state.df_leads.loc[idx] = edited_df.loc[idx]
-
-    st.markdown("---")
-
-    # Export & Download Tools
-    col_exp1, col_exp2 = st.columns([1, 1])
-
-    with col_exp1:
-        csv_data = st.session_state.df_leads.to_csv(index=False, encoding="utf-8-sig")
-        st.download_button(
-            label="📥 Tải Bảng Lead Đã Duyệt (CSV)",
-            data=csv_data,
-            file_name="lead_scoring_results.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-
-    with col_exp2:
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            st.session_state.df_leads.to_excel(writer, index=False, sheet_name='Lead_Scoring')
-        excel_data = buffer.getvalue()
+    # ---------------------------------------------------------
+    # TAB 1: VISUAL ANALYTICS DASHBOARD (PLOTLY CHARTS)
+    # ---------------------------------------------------------
+    with tab1:
+        st.markdown("### 📈 Phân Tích Dữ Liệu Lead Bất Động Sản")
         
-        st.download_button(
-            label="📊 Xuất Báo Cáo Excel (XLSX)",
-            data=excel_data,
-            file_name="lead_scoring_report.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
+        # Action Button & Filters Toolbar inside Tab 1
+        col_tb1, col_tb2, col_tb3 = st.columns([2, 1, 1])
+        with col_tb1:
+            if st.button("🤖 Chạy AI Scoring (Scan & Auto Score Tất Cả Lead)", type="primary", use_container_width=True):
+                with st.spinner("AI Agent đang phân tích nội dung nhu cầu & áp dụng tri thức chấm điểm..."):
+                    scores = []
+                    tiers = []
+                    reasons = []
+                    statuses = []
+                    auto_approved_cnt = 0
+                    
+                    for idx, row in st.session_state.df_leads.iterrows():
+                        mo_ta = str(row.get("nhu_cau_mo_ta", ""))
+                        sc, tr, rs = ai_scoring_agent(mo_ta)
+                        scores.append(sc)
+                        tiers.append(tr)
+                        reasons.append(rs)
+                        
+                        # Tự động chuyển trạng thái các khách hàng có điểm AI >= 100 sang "Đã duyệt"
+                        if sc >= 100:
+                            statuses.append("Đã duyệt")
+                            auto_approved_cnt += 1
+                        else:
+                            current_status = row.get("Trang_Thai_Duyet", "Chưa duyệt")
+                            statuses.append(current_status if current_status != "Chưa chấm" else "Chưa duyệt")
+                        
+                    st.session_state.df_leads["Diem_So"] = scores
+                    st.session_state.df_leads["Phan_Loai"] = tiers
+                    st.session_state.df_leads["Ly_Do_Cham_Diem"] = reasons
+                    st.session_state.df_leads["Trang_Thai_Duyet"] = statuses
+                    st.success(f"⚡ Đã hoàn thành chấm điểm AI cho {len(st.session_state.df_leads)} leads! (Đã tự động duyệt {auto_approved_cnt} lead điểm ≥ 100)")
+                    st.rerun()
+
+        with col_tb2:
+            st.metric("Tỷ Lệ Chuyển Đổi VIP", f"{round(vip_leads/total_leads*100, 1) if total_leads>0 else 0}%", delta="Lead Chất Lượng Cao")
+        with col_tb3:
+            st.metric("Điểm AI Trung Bình", f"{avg_score} pts", delta="Thang điểm BĐS")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Plotly Charts Grid
+        chart_col1, chart_col2 = st.columns(2)
+
+        with chart_col1:
+            st.markdown("#### 🍩 Tỷ Lệ Phân Bổ Tier Khách Hàng")
+            tier_counts = df_leads["Phan_Loai"].value_counts().reset_index()
+            tier_counts.columns = ["Tier", "Số_Lượng"]
+            
+            # Custom Orange/Amber Palette
+            color_map = {
+                "🌟 VIP": "#ff7700",
+                "🟢 Tiềm năng": "#10b981",
+                "🟡 Trung bình": "#3b82f6",
+                "🔴 Khách rác/Spam": "#f43f5e",
+                "Chưa chấm": "#64748b"
+            }
+            
+            fig_donut = px.pie(
+                tier_counts, 
+                values="Số_Lượng", 
+                names="Tier", 
+                hole=0.55,
+                color="Tier",
+                color_discrete_map=color_map
+            )
+            fig_donut.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#0d0f14', width=3)))
+            fig_donut.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#e2e8f0'),
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+                margin=dict(t=20, b=20, l=20, r=20)
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        with chart_col2:
+            st.markdown("#### 📊 Trạng Thái Duyệt Của Đội Nguồn Sales")
+            status_counts = df_leads["Trang_Thai_Duyet"].value_counts().reset_index()
+            status_counts.columns = ["Trạng_Thái", "Số_Lượng"]
+            
+            fig_bar = px.bar(
+                status_counts, 
+                x="Trạng_Thái", 
+                y="Số_Lượng", 
+                color="Trạng_Thái",
+                text="Số_Lượng",
+                color_discrete_sequence=["#ff7700", "#38bdf8", "#fb923c", "#f43f5e"]
+            )
+            fig_bar.update_traces(textposition='outside', marker=dict(line=dict(color='#0d0f14', width=1.5)))
+            fig_bar.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#e2e8f0'),
+                xaxis_title="Trạng Thái",
+                yaxis_title="Số Lượng Lead",
+                showlegend=False,
+                margin=dict(t=20, b=20, l=20, r=20)
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        # Score Distribution Histogram Chart
+        st.markdown("#### 📉 Phân Bố Điểm AI Chấm Điểm (Histogram Distribution)")
+        fig_hist = px.histogram(
+            df_leads, 
+            x="Diem_So", 
+            nbins=20,
+            color_discrete_sequence=["#ff6b00"],
+            labels={"Diem_So": "Điểm AI (Score)"}
         )
+        fig_hist.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(22, 25, 34, 0.5)',
+            font=dict(color='#e2e8f0'),
+            xaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
+            yaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
+            margin=dict(t=20, b=20, l=20, r=20)
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    # ---------------------------------------------------------
+    # TAB 2: DATA EDITOR & HUMAN-IN-THE-LOOP MANAGEMENT
+    # ---------------------------------------------------------
+    with tab2:
+        st.markdown("### 📋 Bảng Hiệu Chỉnh & Phê Duyệt Lead")
+        st.caption("💡 Chỉnh sửa điểm số, phân loại, trạng thái duyệt và ghi chú trực tiếp trên bảng. Hệ thống tự động đồng bộ.")
+
+        # Data Editor Toolbar Filters
+        col_f1, col_f2, col_f3 = st.columns([1, 1, 2])
+        with col_f1:
+            tier_filter = st.selectbox("Lọc Tier:", ["Tất cả", "🌟 VIP", "🟢 Tiềm năng", "🔴 Khách rác/Spam", "Chưa chấm"], key="f_tier")
+        with col_f2:
+            status_filter = st.selectbox("Lọc Trạng Thái:", ["Tất cả", "Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"], key="f_status")
+        with col_f3:
+            search_query = st.text_input("🔍 Tìm tên khách/SĐT/Mô tả:", placeholder="Nhập từ khóa...", key="f_search")
+
+        # Filter logic
+        filtered_df = df_leads.copy()
+        if tier_filter != "Tất cả":
+            filtered_df = filtered_df[filtered_df["Phan_Loai"] == tier_filter]
+        if status_filter != "Tất cả":
+            filtered_df = filtered_df[filtered_df["Trang_Thai_Duyet"] == status_filter]
+        if search_query.strip():
+            q = search_query.lower()
+            filtered_df = filtered_df[
+                filtered_df["ten_khach"].str.lower().str.contains(q, na=False) |
+                filtered_df["sdt"].str.lower().str.contains(q, na=False) |
+                filtered_df["nhu_cau_mo_ta"].str.lower().str.contains(q, na=False)
+            ]
+
+        # Interactive Data Editor
+        edited_df = st.data_editor(
+            filtered_df,
+            key="data_editor_leads_main",
+            use_container_width=True,
+            num_rows="dynamic",
+            column_config={
+                "id": st.column_config.NumberColumn("ID", disabled=True, width="small"),
+                "ten_khach": st.column_config.TextColumn("Tên Khách", width="medium"),
+                "sdt": st.column_config.TextColumn("SĐT", width="medium"),
+                "nhu_cau_mo_ta": st.column_config.TextColumn("Nhu Cầu Mô Tả", width="large"),
+                "Diem_So": st.column_config.NumberColumn("Điểm AI", help="Điểm số đánh giá", width="small"),
+                "Phan_Loai": st.column_config.SelectboxColumn(
+                    "Phân Loại (Tier)",
+                    options=["🌟 VIP", "🟢 Tiềm năng", "🟡 Trung bình", "🔴 Khách rác/Spam", "Chưa chấm"],
+                    width="medium"
+                ),
+                "Ly_Do_Cham_Diem": st.column_config.TextColumn("Lý Do Chấm Điểm (AI)", width="large"),
+                "Trang_Thai_Duyet": st.column_config.SelectboxColumn(
+                    "Trạng Thái Duyệt",
+                    options=["Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"],
+                    width="medium"
+                ),
+                "Ghi_Chu_Sale": st.column_config.TextColumn("Ghi Chú của Sales", width="medium")
+            },
+            hide_index=True
+        )
+
+        # Synchronize edited changes back to session_state
+        if not edited_df.equals(filtered_df):
+            for idx in edited_df.index:
+                st.session_state.df_leads.loc[idx] = edited_df.loc[idx]
+
+    # ---------------------------------------------------------
+    # TAB 3: KNOWLEDGE BASE RULES VIEWER
+    # ---------------------------------------------------------
+    with tab3:
+        st.markdown("### 📚 Tri Thức & Quy Tắc Chấm Điểm Lead BĐS")
+        st.info("💡 File `knowledge-base/tieu_chi_cham_diem.txt` chứa tập luật nguyên tắc để AI Agent thực hiện phân tích nhu cầu.")
+        
+        st.markdown(f"""
+        ```text
+        {kb_text}
+        ```
+        """)
+
+    # ---------------------------------------------------------
+    # TAB 4: EXPORT & REPORTS
+    # ---------------------------------------------------------
+    with tab4:
+        st.markdown("### 📥 Xuất Dữ Liệu & Báo Cáo Phê Duyệt")
+        
+        col_exp1, col_exp2 = st.columns(2)
+        
+        with col_exp1:
+            st.markdown("#### 📄 Tải Dữ Liệu CSV")
+            csv_data = st.session_state.df_leads.to_csv(index=False, encoding="utf-8-sig")
+            st.download_button(
+                label="📥 Download CSV Dataset (Bao Gồm Điểm AI & Duyệt)",
+                data=csv_data,
+                file_name="lead_scoring_results.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="primary"
+            )
+
+        with col_exp2:
+            st.markdown("#### 📊 Tải Báo Cáo Excel (XLSX)")
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                st.session_state.df_leads.to_excel(writer, index=False, sheet_name='Lead_Scoring')
+            excel_data = buffer.getvalue()
+            
+            st.download_button(
+                label="📊 Export Full Excel Report (.xlsx)",
+                data=excel_data,
+                file_name="lead_scoring_report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
 if __name__ == "__main__":
     main()
