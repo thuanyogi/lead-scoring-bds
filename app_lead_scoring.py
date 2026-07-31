@@ -3,8 +3,17 @@ import pandas as pd
 import re
 import os
 import io
+import requests
 import plotly.express as px
 import plotly.graph_objects as go
+
+# Google Auth imports for private Google Sheets access
+try:
+    from google.oauth2 import service_account
+    import google.auth.transport.requests
+    HAS_GOOGLE_AUTH = True
+except ImportError:
+    HAS_GOOGLE_AUTH = False
 
 # ---------------------------------------------------------
 # CONSTANTS & PATHS
@@ -16,14 +25,80 @@ KNOWLEDGE_FILE_PATH = os.path.join("knowledge-base", "tieu_chi_cham_diem.txt")
 # HELPER & SCORING FUNCTIONS
 # ---------------------------------------------------------
 def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
-    """Tải dữ liệu trực tiếp từ Google Sheets CSV Export URL"""
+    """
+    Tải dữ liệu trực tiếp từ Google Sheets CSV Export URL.
+    Hỗ trợ cả đọc công khai và tự động xác thực bằng Google Service Account (từ st.secrets) khi Sheet để chế độ riêng tư.
+    """
+    if not sheet_url or not sheet_url.strip():
+        st.error("Vui lòng nhập đường dẫn Google Sheets hợp lệ.")
+        return pd.DataFrame()
+
+    # Tự động chuẩn hóa URL nhập vào sang dạng CSV export
+    csv_url = sheet_url.strip()
+    if "/edit" in csv_url or "docs.google.com/spreadsheets" in csv_url:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', csv_url)
+        match_gid = re.search(r'[#&?]gid=([0-9]+)', csv_url)
+        if match_id:
+            sheet_id = match_id.group(1)
+            gid = match_gid.group(1) if match_gid else "0"
+            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+
+    headers = {}
+    
+    # 1. Tự động kiểm tra nếu có Google Service Account Credentials trong st.secrets
+    if HAS_GOOGLE_AUTH:
+        try:
+            if "gcp_service_account" in st.secrets:
+                sa_info = dict(st.secrets["gcp_service_account"])
+                scopes = [
+                    'https://www.googleapis.com/auth/spreadsheets.readonly',
+                    'https://www.googleapis.com/auth/drive.readonly'
+                ]
+                creds = service_account.Credentials.from_service_account_info(sa_info, scopes=scopes)
+                auth_req = google.auth.transport.requests.Request()
+                creds.refresh(auth_req)
+                headers["Authorization"] = f"Bearer {creds.token}"
+        except Exception:
+            pass
+
+    # 2. Gửi yêu cầu HTTP tải dữ liệu CSV
     try:
-        df = pd.read_csv(sheet_url, dtype={'sdt': str})
+        resp = requests.get(csv_url, headers=headers, timeout=15)
+        
+        # Xử lý khi gặp lỗi Unauthorized / Forbidden (HTTP 401 / 403)
+        if resp.status_code in [401, 403]:
+            st.error("🔒 **Lỗi kết nối Google Sheets: HTTP Error 401 (Unauthorized)**")
+            st.markdown("""
+            > **Giải thích nguyên nhân & Vấn đề nằm ở đâu?**
+            > 
+            > 1. **Vấn đề cốt lõi**: Trang tính Google Sheet của bạn hiện đang ở trạng thái **"Hạn chế" (Restricted)**.
+            > 2. **Vì sao đã thêm Email Service Account mà vẫn lỗi 401?**  
+            >    Khi bạn tải dữ liệu bằng link URL CSV (`/export?format=csv`), trình duyệt hoặc server sẽ gửi yêu cầu ẩn danh. Việc cấp quyền cho Email Service Account chỉ hoạt động khi ứng dụng đính kèm **OAuth Access Token** trong Header yêu cầu. Nếu không có Token xác thực, Google Security sẽ chặn lại và báo lỗi **401 Unauthorized**.
+            >
+            > ---
+            > 💡 **CÁCH KHẮC PHỤC (Chọn 1 trong 2 cách):**
+            >
+            > - **Cách 1 (Đơn giản & Nhanh nhất - Khuyên dùng)**:  
+            >   1. Mở trang Google Sheet của bạn.  
+            >   2. Bấm nút **Chia sẻ (Share)** ở góc trên bên phải.  
+            >   3. Tại mục *Quyền truy cập chung (General Access)*, chuyển từ **Hạn chế** sang **"Bất kỳ ai có liên kết đều có thể xem" (Anyone with the link can view)**.  
+            >   4. Bấm **Xong** và quay lại đây bấm nút **🔄 Tải Lại Dữ Liệu Gốc**.
+            >
+            > - **Cách 2 (Sử dụng Service Account Secrets)**:  
+            >   Copy cấu hình TOML của Service Account dán vào phần **App Secrets** trên Streamlit Cloud. Ứng dụng đã được tích hợp tự động gửi OAuth Bearer Token để mở khóa trang tính riêng tư của bạn!
+            """)
+            return pd.DataFrame()
+        
+        resp.raise_for_status()
+        
+        # Đọc dữ liệu CSV vào Pandas DataFrame
+        df = pd.read_csv(io.StringIO(resp.text), dtype={'sdt': str})
         if 'sdt' in df.columns:
             df['sdt'] = df['sdt'].astype(str)
         return df
+        
     except Exception as e:
-        st.error(f"Lỗi kết nối Google Sheets: {e}")
+        st.error(f"Lỗi tải dữ liệu từ Google Sheets: {e}")
         return pd.DataFrame()
 
 def load_knowledge_base():
@@ -151,26 +226,22 @@ def main():
     # ---------------------------------------------------------
     st.markdown("""
     <style>
-        /* Import Google Fonts */
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
         html, body, [class*="css"] {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        /* App Background */
         .stApp {
             background-color: #0d0f14;
             color: #f1f5f9;
         }
 
-        /* Sidebar Styling */
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #161922 0%, #0d0f14 100%);
             border-right: 1px solid rgba(249, 115, 22, 0.15);
         }
 
-        /* Orange Glow Header Card */
         .header-card {
             background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(30, 27, 24, 0.8) 50%, rgba(13, 15, 20, 0.95) 100%);
             border: 1px solid rgba(249, 115, 22, 0.35);
@@ -206,7 +277,6 @@ def main():
             line-height: 1.5;
         }
 
-        /* Orange Custom Metric Cards */
         .orange-metric-card {
             background: rgba(22, 25, 34, 0.7);
             border: 1px solid rgba(249, 115, 22, 0.2);
@@ -243,7 +313,6 @@ def main():
             margin-top: 6px;
         }
 
-        /* Orange Styled Primary Buttons */
         div.stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #ff6b00 0%, #ea580c 100%) !important;
             color: #ffffff !important;
@@ -261,7 +330,6 @@ def main():
             transform: translateY(-2px) !important;
         }
 
-        /* Streamlit Tabs Styling */
         .stTabs [data-baseweb="tab-list"] {
             gap: 12px;
             background-color: rgba(22, 25, 34, 0.5);
@@ -283,7 +351,6 @@ def main():
             box-shadow: 0 4px 15px rgba(234, 88, 12, 0.35);
         }
 
-        /* Custom Scrollbar & Badges */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0d0f14; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -441,13 +508,10 @@ def main():
         "📥 Export & Báo Cáo"
     ])
 
-    # ---------------------------------------------------------
     # TAB 1: VISUAL ANALYTICS DASHBOARD (PLOTLY CHARTS)
-    # ---------------------------------------------------------
     with tab1:
         st.markdown("### 📈 Phân Tích Dữ Liệu Lead Bất Động Sản")
         
-        # Action Button & Filters Toolbar inside Tab 1
         col_tb1, col_tb2, col_tb3 = st.columns([2, 1, 1])
         with col_tb1:
             if st.button("🤖 Chạy AI Scoring (Scan & Auto Score Tất Cả Lead)", type="primary", use_container_width=True):
@@ -487,93 +551,88 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Plotly Charts Grid
-        chart_col1, chart_col2 = st.columns(2)
+        if total_leads > 0:
+            chart_col1, chart_col2 = st.columns(2)
 
-        with chart_col1:
-            st.markdown("#### 🍩 Tỷ Lệ Phân Bổ Tier Khách Hàng")
-            tier_counts = df_leads["Phan_Loai"].value_counts().reset_index()
-            tier_counts.columns = ["Tier", "Số_Lượng"]
-            
-            # Custom Orange/Amber Palette
-            color_map = {
-                "🌟 VIP": "#ff7700",
-                "🟢 Tiềm năng": "#10b981",
-                "🟡 Trung bình": "#3b82f6",
-                "🔴 Khách rác/Spam": "#f43f5e",
-                "Chưa chấm": "#64748b"
-            }
-            
-            fig_donut = px.pie(
-                tier_counts, 
-                values="Số_Lượng", 
-                names="Tier", 
-                hole=0.55,
-                color="Tier",
-                color_discrete_map=color_map
+            with chart_col1:
+                st.markdown("#### 🍩 Tỷ Lệ Phân Bổ Tier Khách Hàng")
+                tier_counts = df_leads["Phan_Loai"].value_counts().reset_index()
+                tier_counts.columns = ["Tier", "Số_Lượng"]
+                
+                color_map = {
+                    "🌟 VIP": "#ff7700",
+                    "🟢 Tiềm năng": "#10b981",
+                    "🟡 Trung bình": "#3b82f6",
+                    "🔴 Khách rác/Spam": "#f43f5e",
+                    "Chưa chấm": "#64748b"
+                }
+                
+                fig_donut = px.pie(
+                    tier_counts, 
+                    values="Số_Lượng", 
+                    names="Tier", 
+                    hole=0.55,
+                    color="Tier",
+                    color_discrete_map=color_map
+                )
+                fig_donut.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#0d0f14', width=3)))
+                fig_donut.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#e2e8f0'),
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+                    margin=dict(t=20, b=20, l=20, r=20)
+                )
+                st.plotly_chart(fig_donut, use_container_width=True)
+
+            with chart_col2:
+                st.markdown("#### 📊 Trạng Thái Duyệt Của Đội Nguồn Sales")
+                status_counts = df_leads["Trang_Thai_Duyet"].value_counts().reset_index()
+                status_counts.columns = ["Trạng_Thái", "Số_Lượng"]
+                
+                fig_bar = px.bar(
+                    status_counts, 
+                    x="Trạng_Thái", 
+                    y="Số_Lượng", 
+                    color="Trạng_Thái",
+                    text="Số_Lượng",
+                    color_discrete_sequence=["#ff7700", "#38bdf8", "#fb923c", "#f43f5e"]
+                )
+                fig_bar.update_traces(textposition='outside', marker=dict(line=dict(color='#0d0f14', width=1.5)))
+                fig_bar.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#e2e8f0'),
+                    xaxis_title="Trạng Thái",
+                    yaxis_title="Số Lượng Lead",
+                    showlegend=False,
+                    margin=dict(t=20, b=20, l=20, r=20)
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+            st.markdown("#### 📉 Phân Bố Điểm AI Chấm Điểm (Histogram Distribution)")
+            fig_hist = px.histogram(
+                df_leads, 
+                x="Diem_So", 
+                nbins=20,
+                color_discrete_sequence=["#ff6b00"],
+                labels={"Diem_So": "Điểm AI (Score)"}
             )
-            fig_donut.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#0d0f14', width=3)))
-            fig_donut.update_layout(
+            fig_hist.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(22, 25, 34, 0.5)',
                 font=dict(color='#e2e8f0'),
-                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+                xaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
+                yaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
                 margin=dict(t=20, b=20, l=20, r=20)
             )
-            st.plotly_chart(fig_donut, use_container_width=True)
+            st.plotly_chart(fig_hist, use_container_width=True)
 
-        with chart_col2:
-            st.markdown("#### 📊 Trạng Thái Duyệt Của Đội Nguồn Sales")
-            status_counts = df_leads["Trang_Thai_Duyet"].value_counts().reset_index()
-            status_counts.columns = ["Trạng_Thái", "Số_Lượng"]
-            
-            fig_bar = px.bar(
-                status_counts, 
-                x="Trạng_Thái", 
-                y="Số_Lượng", 
-                color="Trạng_Thái",
-                text="Số_Lượng",
-                color_discrete_sequence=["#ff7700", "#38bdf8", "#fb923c", "#f43f5e"]
-            )
-            fig_bar.update_traces(textposition='outside', marker=dict(line=dict(color='#0d0f14', width=1.5)))
-            fig_bar.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#e2e8f0'),
-                xaxis_title="Trạng Thái",
-                yaxis_title="Số Lượng Lead",
-                showlegend=False,
-                margin=dict(t=20, b=20, l=20, r=20)
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-        # Score Distribution Histogram Chart
-        st.markdown("#### 📉 Phân Bố Điểm AI Chấm Điểm (Histogram Distribution)")
-        fig_hist = px.histogram(
-            df_leads, 
-            x="Diem_So", 
-            nbins=20,
-            color_discrete_sequence=["#ff6b00"],
-            labels={"Diem_So": "Điểm AI (Score)"}
-        )
-        fig_hist.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(22, 25, 34, 0.5)',
-            font=dict(color='#e2e8f0'),
-            xaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
-            yaxis=dict(gridcolor='rgba(255,255,255,0.05)'),
-            margin=dict(t=20, b=20, l=20, r=20)
-        )
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-    # ---------------------------------------------------------
     # TAB 2: DATA EDITOR & HUMAN-IN-THE-LOOP MANAGEMENT
-    # ---------------------------------------------------------
     with tab2:
         st.markdown("### 📋 Bảng Hiệu Chỉnh & Phê Duyệt Lead")
         st.caption("💡 Chỉnh sửa điểm số, phân loại, trạng thái duyệt và ghi chú trực tiếp trên bảng. Hệ thống tự động đồng bộ.")
 
-        # Data Editor Toolbar Filters
         col_f1, col_f2, col_f3 = st.columns([1, 1, 2])
         with col_f1:
             tier_filter = st.selectbox("Lọc Tier:", ["Tất cả", "🌟 VIP", "🟢 Tiềm năng", "🔴 Khách rác/Spam", "Chưa chấm"], key="f_tier")
@@ -582,7 +641,6 @@ def main():
         with col_f3:
             search_query = st.text_input("🔍 Tìm tên khách/SĐT/Mô tả:", placeholder="Nhập từ khóa...", key="f_search")
 
-        # Filter logic
         filtered_df = df_leads.copy()
         if tier_filter != "Tất cả":
             filtered_df = filtered_df[filtered_df["Phan_Loai"] == tier_filter]
@@ -596,7 +654,6 @@ def main():
                 filtered_df["nhu_cau_mo_ta"].str.lower().str.contains(q, na=False)
             ]
 
-        # Interactive Data Editor
         edited_df = st.data_editor(
             filtered_df,
             key="data_editor_leads_main",
@@ -624,14 +681,11 @@ def main():
             hide_index=True
         )
 
-        # Synchronize edited changes back to session_state
         if not edited_df.equals(filtered_df):
             for idx in edited_df.index:
                 st.session_state.df_leads.loc[idx] = edited_df.loc[idx]
 
-    # ---------------------------------------------------------
     # TAB 3: KNOWLEDGE BASE RULES VIEWER
-    # ---------------------------------------------------------
     with tab3:
         st.markdown("### 📚 Tri Thức & Quy Tắc Chấm Điểm Lead BĐS")
         st.info("💡 File `knowledge-base/tieu_chi_cham_diem.txt` chứa tập luật nguyên tắc để AI Agent thực hiện phân tích nhu cầu.")
@@ -642,9 +696,7 @@ def main():
         ```
         """)
 
-    # ---------------------------------------------------------
     # TAB 4: EXPORT & REPORTS
-    # ---------------------------------------------------------
     with tab4:
         st.markdown("### 📥 Xuất Dữ Liệu & Báo Cáo Phê Duyệt")
         

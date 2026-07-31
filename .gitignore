@@ -8,6 +8,7 @@ __pycache__/
 token.json
 credentials*.json
 *.json.secret
+.streamlit/secrets.toml
 
 # OS-specific files
 .DS_Store
