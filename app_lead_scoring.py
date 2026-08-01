@@ -427,9 +427,9 @@ def main():
         st.markdown("<hr style='border-color: rgba(249, 115, 22, 0.2);'>", unsafe_allow_html=True)
         st.subheader("📡 Nguồn Dữ Liệu Live")
         sheet_url_input = st.text_input(
-            "Google Sheets CSV URL:",
+            "Google Sheets URL:",
             value=DEFAULT_SHEET_URL,
-            help="Đường dẫn CSV Export từ Google Sheets"
+            help="Dán link Google Sheet bình thường (cả link /edit hay /export đều được — ứng dụng tự xử lý)"
         )
         
         if st.button("🔄 Tải Lại Dữ Liệu Gốc", use_container_width=True):
@@ -688,36 +688,39 @@ def main():
                 filtered_df["nhu_cau_mo_ta"].str.lower().str.contains(q, na=False)
             ]
 
-        edited_df = st.data_editor(
-            filtered_df,
-            key="data_editor_leads_main",
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config={
-                "id": st.column_config.NumberColumn("ID", disabled=True, width="small"),
-                "ten_khach": st.column_config.TextColumn("Tên Khách", width="medium"),
-                "sdt": st.column_config.TextColumn("SĐT", width="medium"),
-                "nhu_cau_mo_ta": st.column_config.TextColumn("Nhu Cầu Mô Tả", width="large"),
-                "Diem_So": st.column_config.NumberColumn("Điểm AI", help="Điểm số đánh giá", width="small"),
-                "Phan_Loai": st.column_config.SelectboxColumn(
-                    "Phân Loại (Tier)",
-                    options=["🌟 VIP", "🟢 Tiềm năng", "🟡 Trung bình", "🔴 Khách rác/Spam", "Chưa chấm"],
-                    width="medium"
-                ),
-                "Ly_Do_Cham_Diem": st.column_config.TextColumn("Lý Do Chấm Điểm (AI)", width="large"),
-                "Trang_Thai_Duyet": st.column_config.SelectboxColumn(
-                    "Trạng Thái Duyệt",
-                    options=["Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"],
-                    width="medium"
-                ),
-                "Ghi_Chu_Sale": st.column_config.TextColumn("Ghi Chú của Sales", width="medium")
-            },
-            hide_index=True
-        )
+        if filtered_df.empty:
+            st.info("📥 Không có dữ liệu nào phù hợp với bộ lọc hiện tại. Hãy kiểm tra kết nối Google Sheets hoặc thử tải lại dữ liệu ở sidebar.")
+        else:
+            edited_df = st.data_editor(
+                filtered_df,
+                key="data_editor_leads_main",
+                use_container_width=True,
+                num_rows="dynamic",
+                column_config={
+                    "id": st.column_config.NumberColumn("ID", disabled=True, width="small"),
+                    "ten_khach": st.column_config.TextColumn("Tên Khách", width="medium"),
+                    "sdt": st.column_config.TextColumn("SĐT", width="medium"),
+                    "nhu_cau_mo_ta": st.column_config.TextColumn("Nhu Cầu Mô Tả", width="large"),
+                    "Diem_So": st.column_config.NumberColumn("Điểm AI", help="Điểm số đánh giá", width="small"),
+                    "Phan_Loai": st.column_config.SelectboxColumn(
+                        "Phân Loại (Tier)",
+                        options=["🌟 VIP", "🟢 Tiềm năng", "🟡 Trung bình", "🔴 Khách rác/Spam", "Chưa chấm"],
+                        width="medium"
+                    ),
+                    "Ly_Do_Cham_Diem": st.column_config.TextColumn("Lý Do Chấm Điểm (AI)", width="large"),
+                    "Trang_Thai_Duyet": st.column_config.SelectboxColumn(
+                        "Trạng Thái Duyệt",
+                        options=["Chưa duyệt", "Đã duyệt", "Cần liên hệ lại", "Bỏ qua"],
+                        width="medium"
+                    ),
+                    "Ghi_Chu_Sale": st.column_config.TextColumn("Ghi Chú của Sales", width="medium")
+                },
+                hide_index=True
+            )
 
-        if not edited_df.equals(filtered_df):
-            for idx in edited_df.index:
-                st.session_state.df_leads.loc[idx] = edited_df.loc[idx]
+            if not edited_df.equals(filtered_df):
+                for idx in edited_df.index:
+                    st.session_state.df_leads.loc[idx] = edited_df.loc[idx]
 
     # TAB 3: KNOWLEDGE BASE RULES VIEWER
     with tab3:
