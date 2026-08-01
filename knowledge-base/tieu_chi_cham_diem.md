@@ -1,3 +1,5 @@
+ảu tC
+
 # BỘ TIÊU CHÍ CHẤM ĐIỂM LEAD BẤT ĐỘNG SẢN (KNOWLEDGE BASE)
 
 > **Mục tiêu**: Hướng dẫn AI Agent phân loại và đánh giá chất lượng khách hàng tự động dựa trên mô tả nhu cầu nhằm tối ưu hóa nguồn lực cho đội ngũ kinh doanh.
@@ -56,11 +58,13 @@ AI Agent thực hiện trừ **-50 điểm** khi phát hiện các dấu hiệu:
 
 ## 4. QUY TẮC PHÂN LOẠI LEAD (TIER MATRIX)
 
-| Thang điểm | Phân loại (Tier) | Hành động đề xuất |
-| :--- | :--- | :--- |
-| **>= 50 điểm** | 🌟 **VIP / Siêu tiềm năng** | Chuyển ngay cho Senior Sales / Chăm sóc trong 15 phút |
-| **0 đến 49 điểm** | 🟢 **Tiềm năng / Trung bình** | Phân bổ Sales theo khu vực chăm sóc trong ngày |
-| **< 0 điểm** | 🔴 **Khách rác / Spam** | Đưa vào danh sách đen / Bỏ qua không gọi lại |
+
+| Thang điểm          | Phân loại (Tier)              | Hành động đề xuất                                   |
+| :---------------------- | :-------------------------------- | :---------------------------------------------------------- |
+| **>= 50 điểm**      | 🌟**VIP / Siêu tiềm năng**   | Chuyển ngay cho Senior Sales / Chăm sóc trong 15 phút |
+| **0 đến 49 điểm** | 🟢**Tiềm năng / Trung bình** | Phân bổ Sales theo khu vực chăm sóc trong ngày      |
+| **< 0 điểm**        | 🔴**Khách rác / Spam**        | Đưa vào danh sách đen / Bỏ qua không gọi lại     |
 
 ---
+
 *Ghi chú: Bộ tiêu chí này có thể mở rộng thêm các điều kiện mới bằng cách bổ sung dòng vào file này hoặc file `tieu_chi_cham_diem.txt`.*

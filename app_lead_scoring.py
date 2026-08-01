@@ -52,9 +52,19 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
     # --- PHƯƠNG ÁN 1: Google Sheets API v4 với Service Account (Sheet riêng tư) ---
     # QUAN TRỌNG: CSV Export URL (/export?format=csv) KHÔNG hỗ trợ Bearer Token.
     # Phải dùng Google Sheets API v4 để truy cập sheet riêng tư.
-    if HAS_GOOGLE_AUTH and "gcp_service_account" in st.secrets:
-        try:
+    sa_info = None
+    if HAS_GOOGLE_AUTH:
+        if "gcp_service_account" in st.secrets:
             sa_info = dict(st.secrets["gcp_service_account"])
+        elif "private_key" in st.secrets:
+            sa_info = dict(st.secrets)
+
+    if sa_info:
+        try:
+            # Xử lý chuỗi private_key nếu bị dán nhầm ký tự \\n dạng escape
+            if "private_key" in sa_info and isinstance(sa_info["private_key"], str):
+                sa_info["private_key"] = sa_info["private_key"].replace("\\n", "\n")
+
             scopes = [
                 'https://www.googleapis.com/auth/spreadsheets.readonly',
                 'https://www.googleapis.com/auth/drive.readonly'
@@ -103,7 +113,8 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
                 return df
 
         except Exception as e:
-            st.warning(f"⚠️ Service Account API v4 thất bại: {e}\n\nĐang thử tải qua CSV export công khai...")
+            st.error(f"❌ **Lỗi Service Account API v4**: `{e}`")
+            st.info("💡 Đang thử phương án dự phòng (CSV Export)...")
 
     # --- PHƯƠNG ÁN 2: CSV Export URL (chỉ hoạt động khi Sheet công khai) ---
     csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
