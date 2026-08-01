@@ -22,20 +22,38 @@ DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1WUvvkEBjt23qyzcnTK0
 KNOWLEDGE_FILE_PATH = os.path.join("knowledge-base", "tieu_chi_cham_diem.txt")
 
 # ---------------------------------------------------------
-# HELPER & SCORING FUNCTIONS
-# ---------------------------------------------------------
+def get_fallback_sample_data():
+    """Trả về bộ dữ liệu thực hành mẫu 10 Leads BĐS chuẩn khi chưa kết nối được Google Sheets"""
+    data = [
+        {"id": 1, "ten_khach": "Nguyễn Văn Hùng", "sdt": "0901234567", "nhu_cau_mo_ta": "Cần mua biệt thự ven sông Vinhomes Ocean Park, ngân sách 25 tỷ, tài chính cực mạnh chốt ngay."},
+        {"id": 2, "ten_khach": "Trần Thị Mai", "sdt": "0912345678", "nhu_cau_mo_ta": "Nhầm số rồi bạn ơi, tôi không có nhu cầu mua nhà đất gì cả."},
+        {"id": 3, "ten_khach": "Lê Hoàng Nam", "sdt": "0923456789", "nhu_cau_mo_ta": "Tìm Penthouse Phú Mỹ Hưng 300m2, view đẹp, pháp lý sổ hồng riêng, làm việc trực tiếp chủ đầu tư."},
+        {"id": 4, "ten_khach": "Phạm Quốc Tuấn", "sdt": "0934567890", "nhu_cau_mo_ta": "Cần thuê căn hộ 1PN giá 3 triệu ở Quận 1."},
+        {"id": 5, "ten_khach": "Đặng Minh Trí", "sdt": "0945678901", "nhu_cau_mo_ta": "Nhà đầu tư tìm mua sỉ shophouse khối đế và quỹ đất công nghiệp 2000m2 tại Khu Đông."},
+        {"id": 6, "ten_khach": "Vũ Anh Đức", "sdt": "0956789012", "nhu_cau_mo_ta": "Khách tìm mua căn hộ 2PN Quận 2 tầm 4-5 tỷ, ngân sách sẵn sàng."},
+        {"id": 7, "ten_khach": "Hoàng Thị Thu", "sdt": "0967890123", "nhu_cau_mo_ta": "Dữ liệu cũ nhầm ngành, không liên hệ nữa."},
+        {"id": 8, "ten_khach": "Ngô Gia Bảo", "sdt": "0978901234", "nhu_cau_mo_ta": "Chủ doanh nghiệp cần mua sàn văn phòng 500m2 Quận 1, ngân sách 30 tỷ không thành vấn đề."},
+        {"id": 9, "ten_khach": "Bùi Thanh Hương", "sdt": "0989012345", "nhu_cau_mo_ta": "Tư vấn đất nền ven biển Đà Nẵng pháp lý chuẩn, thanh toán theo tiến độ."},
+        {"id": 10, "ten_khach": "Đỗ Quang Vinh", "sdt": "0990123456", "nhu_cau_mo_ta": "Spam / số máy không có thực."}
+    ]
+    df = pd.DataFrame(data)
+    df["Diem_So"] = 0
+    df["Phan_Loai"] = "Chưa chấm"
+    df["Ly_Do_Cham_Diem"] = "Chưa chạy AI Agent"
+    df["Trang_Thai_Duyet"] = "Chưa duyệt"
+    df["Ghi_Chu_Sale"] = ""
+    return df
+
 def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
     """
     Tải dữ liệu từ Google Sheets.
     - Ưu tiên dùng Google Sheets API v4 nếu có Service Account trong st.secrets (hỗ trợ Sheet riêng tư).
     - Fallback sang CSV Export URL nếu Sheet để công khai.
-
-    LƯU Ý: CSV Export URL (/export?format=csv) KHÔNG hỗ trợ Bearer Token.
-    Với Sheet riêng tư, BẮT BUỘC phải dùng Sheets API v4.
+    - Fallback sang dữ liệu mẫu BĐS nếu kết nối không thành công (đảm bảo app luôn hiển thị đầy đủ).
     """
     if not sheet_url or not sheet_url.strip():
         st.error("Vui lòng nhập đường dẫn Google Sheets hợp lệ.")
-        return pd.DataFrame()
+        return get_fallback_sample_data()
 
     # Trích sheet_id và gid từ URL
     url_clean = sheet_url.strip()
@@ -44,14 +62,12 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
 
     if not match_id:
         st.error("Không tìm thấy Sheet ID hợp lệ trong URL.")
-        return pd.DataFrame()
+        return get_fallback_sample_data()
 
     sheet_id = match_id.group(1)
     gid = match_gid.group(1) if match_gid else "0"
 
     # --- PHƯƠNG ÁN 1: Google Sheets API v4 với Service Account (Sheet riêng tư) ---
-    # QUAN TRỌNG: CSV Export URL (/export?format=csv) KHÔNG hỗ trợ Bearer Token.
-    # Phải dùng Google Sheets API v4 để truy cập sheet riêng tư.
     sa_info = None
     if HAS_GOOGLE_AUTH:
         if "gcp_service_account" in st.secrets:
@@ -61,7 +77,6 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
 
     if sa_info:
         try:
-            # Xử lý chuỗi private_key nếu bị dán nhầm ký tự \\n dạng escape
             if "private_key" in sa_info and isinstance(sa_info["private_key"], str):
                 sa_info["private_key"] = sa_info["private_key"].replace("\\n", "\n")
 
@@ -75,7 +90,6 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
             token = creds.token
             auth_header = {"Authorization": f"Bearer {token}"}
 
-            # Bước 1: Lấy metadata để chuyển gid → tên sheet
             meta_url = f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}?fields=sheets.properties"
             meta_resp = requests.get(meta_url, headers=auth_header, timeout=10)
             meta_resp.raise_for_status()
@@ -91,30 +105,25 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
                 sheet_name = sheets_info[0]["properties"]["title"]
 
             if sheet_name:
-                # Bước 2: Gọi Sheets API v4 values để lấy dữ liệu
                 values_url = f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/{requests.utils.quote(sheet_name)}"
                 values_resp = requests.get(values_url, headers=auth_header, timeout=15)
                 values_resp.raise_for_status()
                 rows = values_resp.json().get("values", [])
 
-                if len(rows) < 2:
-                    st.warning("Google Sheet trống hoặc chỉ có header.")
-                    return pd.DataFrame()
-
-                headers_row = rows[0]
-                data_rows = rows[1:]
-                df = pd.DataFrame(
-                    [row + [""] * (len(headers_row) - len(row)) for row in data_rows],
-                    columns=headers_row
-                )
-                if 'sdt' in df.columns:
-                    df['sdt'] = df['sdt'].astype(str)
-                st.sidebar.success("✅ Kết nối Google Sheets qua Service Account API v4 thành công!")
-                return df
+                if len(rows) >= 2:
+                    headers_row = rows[0]
+                    data_rows = rows[1:]
+                    df = pd.DataFrame(
+                        [row + [""] * (len(headers_row) - len(row)) for row in data_rows],
+                        columns=headers_row
+                    )
+                    if 'sdt' in df.columns:
+                        df['sdt'] = df['sdt'].astype(str)
+                    st.sidebar.success("✅ Kết nối Google Sheets qua Service Account API v4 thành công!")
+                    return df
 
         except Exception as e:
-            st.error(f"❌ **Lỗi Service Account API v4**: `{e}`")
-            st.info("💡 Đang thử phương án dự phòng (CSV Export)...")
+            st.sidebar.warning(f"⚠️ Service Account API: `{e}`")
 
     # --- PHƯƠNG ÁN 2: CSV Export URL (chỉ hoạt động khi Sheet công khai) ---
     csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
@@ -122,29 +131,19 @@ def load_raw_data_from_sheets(sheet_url=DEFAULT_SHEET_URL):
         resp = requests.get(csv_url, timeout=15)
 
         if resp.status_code in [401, 403]:
-            st.error("🔒 **Lỗi HTTP 401/403: Google Sheet đang ở chế độ Hạn chế (Restricted)**")
-            st.markdown("""
-**Nguyên nhân gốc rễ:** CSV Export URL **không hỗ trợ Bearer Token**. Dù đã thêm email Service Account vào Sheet, Google vẫn từ chối vì request gửi ẩn danh (không có OAuth token đính kèm).
-
-**Cách khắc phục — Chọn 1 trong 2:**
-
-**✅ Cách 1 (Nhanh nhất — 10 giây):**
-> Sheet → Chia sẻ → *Quyền truy cập chung* → đổi sang **"Bất kỳ ai có liên kết đều xem được"** → Bấm 🔄 Tải Lại.
-
-**🔐 Cách 2 (Service Account — cần kiểm tra):**
-> Kiểm tra lại App Secrets trên Streamlit Cloud: phải có header `[gcp_service_account]` và email `d1-273@demob5.iam.gserviceaccount.com` đã được Share vào Sheet với quyền Viewer.
-            """)
-            return pd.DataFrame()
+            st.sidebar.warning("🔒 Google Sheet đang ở chế độ Hạn chế (Restricted). Đang dùng Dữ Liệu Mẫu thực hành.")
+            return get_fallback_sample_data()
 
         resp.raise_for_status()
         df = pd.read_csv(io.StringIO(resp.text), dtype={'sdt': str})
         if 'sdt' in df.columns:
             df['sdt'] = df['sdt'].astype(str)
+        st.sidebar.success("✅ Tải dữ liệu công khai từ Google Sheets thành công!")
         return df
 
     except Exception as e:
-        st.error(f"Lỗi tải dữ liệu từ Google Sheets: {e}")
-        return pd.DataFrame()
+        st.sidebar.warning(f"Không thể kết nối Google Sheets: {e}. Đang dùng Dữ Liệu Mẫu.")
+        return get_fallback_sample_data()
 
 def load_knowledge_base():
     """Đọc quy tắc chấm điểm từ file Knowledge (hỗ trợ nhiều đường dẫn linh hoạt)"""
@@ -443,17 +442,19 @@ def main():
             help="Dán link Google Sheet bình thường (cả link /edit hay /export đều được — ứng dụng tự xử lý)"
         )
         
-        if st.button("🔄 Tải Lại Dữ Liệu Gốc", use_container_width=True):
-            fresh_df = load_raw_data_from_sheets(sheet_url_input)
-            if not fresh_df.empty:
-                fresh_df["Diem_So"] = 0
-                fresh_df["Phan_Loai"] = "Chưa chấm"
-                fresh_df["Ly_Do_Cham_Diem"] = "Chưa chạy AI Agent"
-                fresh_df["Trang_Thai_Duyet"] = "Chưa duyệt"
-                fresh_df["Ghi_Chu_Sale"] = ""
-                fresh_df["sdt"] = fresh_df["sdt"].astype(str)
-                st.session_state.df_leads = fresh_df
-                st.success("Đã tải lại dữ liệu mới thành công!")
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🔄 Tải Google Sheet", use_container_width=True):
+                fresh_df = load_raw_data_from_sheets(sheet_url_input)
+                if not fresh_df.empty:
+                    st.session_state.df_leads = fresh_df
+                    st.success("Đã tải lại dữ liệu mới thành công!")
+                    st.rerun()
+
+        with col_btn2:
+            if st.button("🧪 Dùng Dữ Liệu Mẫu", use_container_width=True):
+                st.session_state.df_leads = get_fallback_sample_data()
+                st.sidebar.info("Đã nạp 10 Lead Mẫu BĐS thực hành.")
                 st.rerun()
 
         st.markdown("<hr style='border-color: rgba(249, 115, 22, 0.2);'>", unsafe_allow_html=True)
